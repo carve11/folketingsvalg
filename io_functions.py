@@ -18,12 +18,14 @@ def retrieve_geo_data(address, from_disk = True):
 
 def request_geo_data(url, address):
     req_url = f'{url}/{address}?format=geojson'
+    print('Requesting data at ', req_url)
     response = requests.get(req_url)
     status = response.status_code
     if status != 200:
         print(req_url)
         raise ValueError(f'Response status code: {status}')
     data = response.json()
+    print('Done')
 
     return data
 
@@ -39,7 +41,11 @@ def read_json_disk(fname):
     return data
 
 def save_json_disk(data, fname):
-    f = os.path.join(config.ROOT_DIR, config.DATA_DIR, fname)
+    data_folder = os.path.join(config.ROOT_DIR, config.DATA_DIR)
+    if not os.path.exists(data_folder):
+        os.makedirs(data_folder)
+
+    f = os.path.join(data_folder, fname)
     with open(f, 'w') as fout:
         json.dump(data, fout)
 
