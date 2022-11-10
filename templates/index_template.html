@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang='da-DK'>
+{% block preamble %}
+<link href="static/css/styles.css" rel="stylesheet">
+<script type="text/javascript" src="static/js/functions.js"></script>
+{% endblock %}
+
+{% block contents %}
+
+<div id="container">
+	<div class="row">
+	<div class="column1 white-bkgrd">
+		<h2 class="margin-lr">Folketingsvalg Danmark 2022</h2>
+		<p class="margin-lr">
+			Præsentation af resultater fra Folketingsvalget i 2022, og sammenligning med valget i 2019.
+			Danmarkskortet viser landets inddeling i opstillingskredse, og via kort kategori elementerne til højre for kortet, vælges der hvilken type data kortet farvelægges med. Det er muligt at zoom ind og ud på kortet, at flytte kortet samt gendanne kortet til oprindelig størrelse (reset knappen).
+		</p>
+	</div>
+	<div class="column2 white-bkgrd">
+		<h4>Data</h3>
+		<p>
+			Geografisk data: <a href="https://dawadocs.dataforsyningen.dk/">Danmarks Adressers Web API</a>
+			som har en åben API, Danmarks Administrative Geografiske Inddeling.
+		</p>
+		<p>
+			Folketingsvalg: <a href="https://www.dst.dk/">Danmarks Statistik</a> der blandt andet har valgresultater tilgængelig som åben data på xml format.
+		</p>
+	</div>
+</div>
+	<div class="row">
+		<div class="column1 white-bkgrd">
+			<p class="title-container">
+			 	<span id="map-title"></span>
+			 	<br>
+			 	<span id="sub-title" class="sub-title"></span>
+			</p>
+	   	{{ embed(roots.map) }}
+	   	<p class="map-refs">
+	   		Kilde: Danmarks Adressers Web API, Danmarks Statistik
+	   	</p>
+		</div>
+	  <div class="column2 white-bkgrd">
+	  	<h4>Kort kategori</h3>
+	  	{{ embed(roots.heatmap_type) }}
+	  	{{ embed(roots.map_select) }}
+	  	{{ embed(roots.map_info) }}
+	  	<div class="push-down">
+	  		{{ embed(roots.mapper_slider) }}
+	  	</div>
+		</div>	
+	</div>
+</div>
+{% endblock %}

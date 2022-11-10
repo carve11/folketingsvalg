@@ -1,0 +1,112 @@
+body, p, div, span, .bk-root, .bk {
+  font-family: "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-weight: 300;
+  color: #444444;
+}
+
+body {
+    background-color: lavenderblush;
+}
+
+input {
+  accent-color: black;
+}
+
+h2 {
+  margin-top: 5px;
+}
+
+h4 {
+    margin-top: 5px;
+    margin-bottom: 0px;
+    font-weight: 500;
+}
+
+p {
+    margin-top: 5px
+}
+
+.white-bkgrd {
+  background-color: white;
+}
+
+#container {
+    max-width: 1000px;
+    margin: auto;
+}
+
+.div-text {
+    font-size: 0.875rem;
+}
+
+.list {
+    margin-top: 2px;
+}
+
+.title-container {
+  height: 45px;
+  margin-bottom: 0px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-top: 0px;
+}
+
+#map-title {
+  font-weight: 500;
+}
+.sub-title {
+  font-size: 0.875rem;
+  font-weight: 300;
+}
+
+.map-refs {
+  font-size: 0.5rem;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-top: 0px;
+}
+
+.row {
+  display: flex;
+}
+
+.column1 {
+  flex: 0 0 600px;
+  margin: 10px;
+}
+
+.column2 {
+  flex-direction: column;
+  display: flex;
+  flex: 0 0 310px;
+  margin: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.margin-lr {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.push-down {
+    margin-top: auto;
+}
+
+.bk-root .bk-input-group input[type="checkbox"] + span,
+.bk-root .bk-input-group input[type="radio"] + span {
+    top: 0px;
+}
+
+.bk-root .bk-input:focus {
+ border-color:#44444480;
+ outline:0;
+ box-shadow:inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.bk .bk-input,
+.bk .bk-input-group {
+    font-size: 0.875rem;
+}
