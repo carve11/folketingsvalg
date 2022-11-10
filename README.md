@@ -6,6 +6,6 @@ Here I have tested making a static document with all the data in the document. H
 ```
 python main.py
 ```
-And then open the `index.html` document in a browser.
+And then open the [`index.html`](https://carve11.github.io/folketingsvalg/) document in a browser.
 
 ![Folketingsvalg2022](./assets/screenshot.png)
