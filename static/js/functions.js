@@ -16,9 +16,9 @@ function formatAsIntl(num) {
 }
 
 function votesAndPct(votes, vote_pct) {
-  var str = formatAsIntl(votes);
-  str += ' (' + formatAsPercent(vote_pct) + ')';
-  return str;
+  const str1 = formatAsIntl(votes);
+  const str2 = formatAsPercent(vote_pct);
+  return `${str1} (${str2})`;
 }
 
 function listPartyResultsBullet(party_votes, party_frac, total_votes) {
@@ -81,7 +81,7 @@ function maxLocation(votes_district, party, max_key_lookup) {
 function districtMaxVotesTxt(vote_data, party) {
   const {location, votes, vote_frac, votes_total} = maxLocation(vote_data, party, 'StemmerAntal')
   var txt = 'Kreds, flest antal stemmer: ' + location;
-  txt += listPartyResultsBullet(votes, vote_frac, votes_total)
+  txt += listPartyResultsBullet(votes, vote_frac, votes_total);
 
   return txt;
 }
@@ -89,13 +89,15 @@ function districtMaxVotesTxt(vote_data, party) {
 function districtMaxVoteFracTxt(vote_data, party) {
   const {location, votes, vote_frac, votes_total} = maxLocation(vote_data, party, 'VoteFrac')
   var txt = 'Kreds, højeste stemmeandel: ' + location;
-  txt += listPartyResultsBullet(votes, vote_frac, votes_total)
+  txt += listPartyResultsBullet(votes, vote_frac, votes_total);
 
   return txt;
 }
 
 function mapSelectPartyDiffTxt(years, vote_data, party, geo_data) {
-  var txt = '<div class="div-text">Lands resultat';
+  var txt = '<div class="div-text">'
+  txt += onlyHighLowTxt(geo_data);
+  txt += 'Lands resultat';
   const national_diff = votesNationalDiffTxt(years, vote_data, party);
   txt += diffDistrictTxt(national_diff, 'bullet')
   txt += districtHighestDiffChg(years, vote_data, party, geo_data);
@@ -105,19 +107,44 @@ function mapSelectPartyDiffTxt(years, vote_data, party, geo_data) {
   return txt;
 }
 
+function onlyHighLowTxt(geo_data) {
+  var txt = '';
+  var {val} = geoDataLocationMinMax(geo_data, 'min');
+  if (val > 0) {
+    txt += 'Parti har kun oplevet fremgang.<br>';
+  }
+  var {val} = geoDataLocationMinMax(geo_data, 'max');
+  if (val < 0) {
+    txt += 'Parti har kun oplevet tilbagegang.<br>';
+  }
+  return txt;
+}
+
 function districtHighestDiffChg(years, vote_data, party, geo_data) {
-  const location = geoDataLocationMinMax(geo_data, 'max');
-  const str = votesDistrictDiffTxt(years, vote_data, party, location)
-  var txt = 'Kreds, største fremgang: ' + location;
+  const {location, val} = geoDataLocationMinMax(geo_data, 'max');
+  const str = votesDistrictDiffTxt(years, vote_data, party, location);
+  var txt = '';
+  if (val < 0) {
+    txt += 'Kreds, mindste tilbagegang: ';
+  } else {
+    txt += 'Kreds, største fremgang: ';
+  }
+  txt += location;
   txt += diffDistrictTxt(str, 'bullet')
 
   return txt;
 }
 
 function districtLowestDiffChg(years, vote_data, party, geo_data) {
-  const location = geoDataLocationMinMax(geo_data, 'min');
-  const str = votesDistrictDiffTxt(years, vote_data, party, location)
-  var txt = 'Kreds, største tilbagegang: ' + location;
+  const {location, val} = geoDataLocationMinMax(geo_data, 'min');
+  const str = votesDistrictDiffTxt(years, vote_data, party, location);
+  var txt = '';
+  if (val < 0) {
+    txt += 'Kreds, største tilbagegang: ';
+  } else {
+    txt += 'Kreds, mindste fremgang: ';
+  }
+  txt += location;
   txt += diffDistrictTxt(str, 'bullet')
 
   return txt;
@@ -131,7 +158,8 @@ function geoDataLocationMinMax(geo_data, min_max) {
   } else {
     val = Math.max(...values);
   }
-  return geo_data['navn'][values.indexOf(val)];
+  const location = geo_data['navn'][values.indexOf(val)];
+  return {location, val};
 }
 
 function diffDistrictTxt(str, list_type) {

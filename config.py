@@ -11,6 +11,7 @@ MAP_WIDTH = 600
 MAP_HEIGHT = 500
 MAP_FONT_SIZE = '13px'
 MAP_FONT = 'system-ui'
+DATA_FROM_DISK = True
 
 ELECTION_URL = {
     2019: 'https://www.dst.dk/valg/Valg1684447/xml/fintal.xml',

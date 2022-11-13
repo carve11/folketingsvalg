@@ -35,7 +35,9 @@ class Folketingsvalg:
         save(contents, template = index_template, title = config.TITLE)
 
     def geo_data(self):
-        geo_data = retrieve_geo_data(self.district_type, from_disk = False)
+        geo_data = retrieve_geo_data(
+            self.district_type, from_disk = config.DATA_FROM_DISK
+            )
         gdf = data_geopandas(geo_data)
         gdf = process_geo_df(gdf)
 
@@ -47,7 +49,9 @@ class Folketingsvalg:
         results = {}
         for y, url in self.vote_url.items():
             results[y] = {}
-            data_json = retrieve_vote_results((y, url), from_disk = False)
+            data_json = retrieve_vote_results(
+                (y, url), from_disk = config.DATA_FROM_DISK
+                )
             data = vote_dict2df(data_json)
             data = process_vote_df(data)
             data = map_geo_vote_data(self.gdf, data, self.district_type)
