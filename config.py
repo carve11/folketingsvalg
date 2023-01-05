@@ -33,6 +33,15 @@ PARTY_RENAME = {
     'K. KD - Kristendemokraterne': 'K. Kristendemokraterne'
 }
 
+PARTY_SHORTNAME = {
+    'C. Det Konservative Folkeparti': 'C. De Konservative',
+    'F. SF - Socialistisk Folkeparti': 'F. SF',
+    'V. Venstre, Danmarks Liberale Parti': 'V. Venstre',
+    'Ø. Enhedslisten - De Rød-Grønne': 'Ø. Enhedslisten',
+    'Q. Frie Grønne, Danmarks Nye Venstrefløjsparti': 'Q. Frie Grønne',
+    'Æ. Danmarksdemokraterne - Inger Støjberg': 'Æ. Danmarksdemokraterne'
+}
+
 DISTRICT_MAPPING = {
     'Landsdele': 'valglandsdelsnavn',
     'Regioner': 'regionsnavn',

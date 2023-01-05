@@ -10,7 +10,11 @@ import config
 def retrieve_geo_data(address, from_disk = True):
     if from_disk:
         data = read_json_disk(f'{address}_geodata.json')
-    else:
+    
+    if not data:
+        from_disk = False
+    
+    if not from_disk:
         data = request_geo_data(config.URL_GEO, address)
         save_json_disk(data, f'{address}_geodata.json')
 
@@ -31,12 +35,22 @@ def request_geo_data(url, address):
 
 def read_json_disk(fname):
     print(f'Reading data from disk, {fname}...')
-    f = os.path.join(config.ROOT_DIR, config.DATA_DIR, fname)
+    data_folder = os.path.join(config.ROOT_DIR, config.DATA_DIR)
+    
+    if not os.path.exists(data_folder):
+        print('Folder: ' + data_folder + ' not found, will download data')
+        return None
 
-    with open(f, 'r') as fin:
-        data = json.load(fin)
+    f = os.path.join(data_folder, fname)
 
-    print('Done')
+    try:
+        with open(f, 'r') as fin:
+            data = json.load(fin)
+    except OSError as err:
+        print('OS error:', err)
+        raise 
+    else:
+        print('Done')
 
     return data
 

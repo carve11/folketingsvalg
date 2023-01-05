@@ -3,19 +3,25 @@ from bokeh.plotting import figure
 from bokeh.models import GeoJSONDataSource, ColumnDataSource
 from bokeh.models import LinearColorMapper, CategoricalColorMapper
 from bokeh.models import Legend, LegendItem, HoverTool, Label
-from bokeh.models import ColorBar, NumeralTickFormatter
-from bokeh.models import Select, Slider, Div, RadioGroup
-from bokeh.palettes import d3, viridis, diverging_palette, linear_palette
-from bokeh.transform import factor_cmap, linear_cmap
+from bokeh.models import ColorBar, NumeralTickFormatter, FuncTickFormatter
+from bokeh.models import Select, Slider, Div, RadioGroup, Span
+from bokeh.palettes import d3, viridis, linear_palette, Reds3, Blues3
+from bokeh.transform import factor_cmap, linear_cmap, dodge, transform
+from bokeh.layouts import gridplot, row, column
 from matplotlib import cm as mp_cm, colors as mp_colors
 import config
 import numpy as np
 
 INIT_MAPPER_HIGH = 0.4
 INIT_PALETTE_SIZE = round(INIT_MAPPER_HIGH*100)
-
+RADIO_WDG_MARGIN = (5, 10, 5, 15)
+WDG_MARGIN = (5, 10, 5, 10)
+WDG_MIN_WIDTH = 280
 
 class Map:
+    '''
+    Map of districts
+    '''
     def __init__(self, srcs):
         self.srcs = srcs
         self.mapper = color_mappers()
@@ -34,7 +40,7 @@ class Map:
             )
         self.p.grid.grid_line_color = None
         self.p.axis.visible = False
-        self.p.toolbar.autohide = True
+        self.p.toolbar.autohide = False
         self.p.outline_line_color = None
         self.p.min_border_right = 35
         self.p.toolbar.logo = None
@@ -123,6 +129,332 @@ class Map:
             )
         self.p.add_layout(label)
 
+class ElectionBarCharts:
+    '''
+    2 side-by-side horizontal bar charts. Left chart shows party election
+    results for 2 elections, and the chart to the right shows the difference
+    between those 2 elections.
+    Assume the source has been sorted correctly by plot_cols[0]
+    '''
+    def __init__(self, srcs, plot_cols, y_cat):
+        self.src = srcs['election_results']
+        self.plot_cols = sorted(plot_cols, reverse = True)
+        self.y_cat = y_cat
+        self.plots = self.charts()
+
+    def charts(self):
+        self.df = self.src.to_df()
+        self.y_plot_cat = self.df.loc[
+            self.df[str(self.plot_cols[0])]>0, self.y_cat
+            ]
+        
+        return row(
+            children = [self.bar_chart(), self.diff_chart()],
+            name = 'charts_election_results'
+            )
+
+    def bar_chart(self):
+        '''
+        Horizontal bar chart with value labels at bars.
+        '''
+        plot = figure(
+            plot_width = 500,
+            plot_height = 600,
+            y_range = self.y_plot_cat,
+            tools = '',
+            toolbar_location = None,
+            title = 'Stemmeandel',
+            name = 'election_results'
+            )
+
+        plot_styling(plot, xgrid = False, ygrid = False, y_major_tick = False)
+        plot.min_border_right = 15
+        plot.xaxis[0].formatter = NumeralTickFormatter(format = "0 %")
+        plot.x_range.start = 0
+        plot.xaxis.visible = False
+        max_val = self.df[[str(self.plot_cols[0]), str(self.plot_cols[1])]].max()
+        plot.x_range.end = (int(max_val.max()*100/5)+2)/100*5
+        
+        self.add_result_glyphs(plot)
+        plot.legend.location = 'center_right'
+        plot.legend.border_line_color = None
+
+        return plot
+
+    def add_result_glyphs(self, plot):
+        p_data = {
+            self.plot_cols[0]: {},
+            self.plot_cols[1]: {},
+        }
+        p_data[self.plot_cols[0]]['offset'] = 0.2
+        p_data[self.plot_cols[0]]['color'] = 'navy' #'#718dbf'
+
+        p_data[self.plot_cols[1]]['offset'] = -0.2
+        p_data[self.plot_cols[1]]['color'] = 'olive' #'#c9d9d3'
+
+        for year in self.plot_cols:
+            y = dodge(self.y_cat, p_data[year]['offset'], range = plot.y_range)
+            plot.hbar(
+                y = y,
+                right = str(year),
+                left = 0,
+                source = self.src,
+                height = 0.38,
+                fill_color = p_data[year]['color'],
+                fill_alpha = 0.5,
+                line_color = 'white',
+                legend_label = str(year)
+                )
+
+            plot.text(
+                y = y,
+                x = str(year),
+                text = f'{year}_label',
+                source = self.src,
+                text_font_size = '12px',
+                text_baseline = 'middle',
+                x_offset = 2
+                )
+
+    def diff_chart(self):
+        '''
+        Horizontal diff chart
+        '''
+        plot = figure(
+            width = 300,
+            height = 600,
+            y_range = self.y_plot_cat,
+            tools = '',
+            toolbar_location = None,
+            title = 'Ændring (procent point)',
+        )
+        plot.title.align = 'center'
+        plot_styling(plot, xgrid = False, ygrid = False, y_major_tick = False)
+        plot.x_range.range_padding = 0.3
+        plot.min_border_left = 15
+        plot.yaxis.visible = False
+        plot.xaxis.visible = False
+        self.add_diff_glyph(plot)
+
+        return plot
+
+    def add_diff_glyph(self, plot):
+        mapper = LinearColorMapper(
+            palette = [Reds3[0], Blues3[0]], low = 0, high = 0
+            )
+
+        diff_col = f'{self.plot_cols[0]}-{self.plot_cols[1]}'
+        plot.hbar(
+            y = self.y_cat,
+            right = diff_col,
+            left = 0,
+            source = self.src,
+            height = 0.6,
+            color = transform(diff_col, mapper),
+            alpha = 1.0
+            )
+        plot.text(
+            y = self.y_cat,
+            x = diff_col,
+            text = f'{diff_col}_label',
+            source = self.src,
+            text_font_size = '12px', 
+            text_baseline = 'middle',
+            text_align = f'{diff_col}_align',
+            x_offset = f'{diff_col}_offset'
+            )
+
+        zero_line = Span(
+            location = 0,
+            dimension = 'height',
+            line_color = 'lightgrey',#'#e5e5e5',
+            line_width = 0.5
+            )
+        plot.add_layout(zero_line)
+
+class HistogramChart:
+    '''
+    Plot histogram barchart
+    '''
+    def __init__(
+            self,
+            src,
+            x_label = None,
+            y_label = None,
+            xlog_scale = False):
+        self.src = src
+        self.xlog_scale = xlog_scale
+        self.x_label = x_label
+        self.y_label = y_label
+        self.plot = self.chart()
+
+    def chart(self):
+        x_axis_type = 'linear'
+        
+        if self.xlog_scale:
+            x_axis_type = 'log'
+
+        plot = figure(
+            width = 500,
+            height = 250,
+            tools = '',
+            toolbar_location = None,
+            x_axis_type = x_axis_type,
+            margin = WDG_MARGIN,
+            name = 'hist_voters_density'
+        )
+
+        plot.xaxis.axis_label = self.x_label
+        plot.yaxis.axis_label = self.y_label
+        plot.y_range.start = 0
+
+        plot.yaxis.formatter = FuncTickFormatter(
+            code = '''return formatAsIntl(tick);'''
+        )
+
+        plot_styling(plot)
+        self.add_glyph(plot)
+
+        return plot
+        
+    def add_glyph(self, plot):
+        r_hist = plot.quad(
+            top = 'hist',
+            bottom = 0,
+            left = 'left_edge',
+            right = 'right_edge',
+            fill_color = 'orange',
+            line_color = 'white',
+            fill_alpha = 0.7,
+            source = self.src
+            )
+
+        hover = HoverTool(
+            tooltips = [
+                ('Antal', '@count'),
+                ('Interval', '@bin_txt')
+            ],
+            renderers = [r_hist],
+            name = 'hover',
+            )
+
+        plot.add_tools(hover)
+
+class PartyDensityGridPlot:
+    '''
+    Grid layout of one chart per party showing election results per district
+    for 2 elections.
+    '''
+    def __init__(self, vote_data, years):
+        self.data = vote_data
+        self.plot = self.grid(years)
+
+    def grid(self, years):
+        plots = []
+        plot_cols = 3
+        markers = {
+            years[0]: {
+            'marker': 'circle',
+            'color': 'navy',
+            'alpha': 0.5
+            },
+            years[1]: {
+            'marker': 'square',
+            'color': 'olive',
+            'alpha': 0.5
+            }
+        }
+
+        parties = self.data[years[0]]['parties']['parties']
+        
+        for i, party in enumerate(parties):
+            p = figure(
+                width = 250,
+                height = 200,
+                min_border = 5,
+                y_axis_type = 'log',
+                tools = '',
+                toolbar_location = None
+                )
+
+            p.min_border_left = 10
+            if i % plot_cols == 0:
+                p.min_border_left = 40
+                p.width += p.min_border_left
+            else:
+                p.yaxis.visible = False
+
+            label_x = p.width-p.min_border_left-10
+
+            for year in years[::-1]:
+                if party not in self.data[year]['parties']['parties']:
+                    continue
+
+                y = self.data[year]['data']['opstillingskredse']['voters_density']
+                x = self.data[year]['data']['opstillingskredse'][party]['VoteFrac']
+                p.scatter(
+                    x = x, y = y, 
+                    marker = markers[year]['marker'],
+                    color = markers[year]['color'],
+                    alpha = markers[year]['alpha']
+                )
+                
+            label = Label(
+                text = self.data[years[0]]['parties']['short_name'][i],
+                x = label_x, x_units = 'screen',
+                y = 150, y_units = 'screen',
+                text_align = 'right',
+                text_font_size = '12px',
+                text_font_style = 'bold',
+            )
+            p.add_layout(label)
+            
+            plot_styling(p)
+            
+            p.axis.major_label_text_font_size = '13px'
+            p.axis.axis_line_color = None
+            p.background_fill_color = '#efefef'
+            #p.ygrid.grid_line_color = 'lightgrey'
+            #p.xgrid.grid_line_color = 'lightgrey'
+            p.xaxis[0].formatter = NumeralTickFormatter(format = "0 %")
+            p.xaxis.ticker.desired_num_ticks = 5
+            p.x_range.range_padding = 0.2
+            p.y_range.update(start = 7, end = 35000)
+
+            plots.append(p)
+
+        gp = gridplot(plots, ncols = plot_cols, toolbar_location = None)
+        #gp.name = 'voters_density_grid'
+
+        grid_width = sum(plots[i].width for i in range(plot_cols))
+        legend = dummy_legend_fig(grid_width, markers)
+        layout = column(gp, legend, name = 'voters_density_grid')
+
+        return layout
+
+
+def plot_styling(plot, xgrid = True, ygrid = True, y_major_tick = True):
+    plot.axis.major_label_text_font_size = '14px'
+    plot.axis.axis_label_text_font_style = 'normal'
+    plot.outline_line_color = None
+    plot.xaxis.minor_tick_line_color = None
+    plot.xaxis.major_tick_in = 0
+    #plot.yaxis.axis_line_color = None
+    plot.yaxis.minor_tick_line_color = None
+    plot.axis.major_tick_line_color = 'lightgrey'
+    plot.axis.axis_line_color = 'lightgrey'
+    plot.ygrid.grid_line_color = 'lightgrey'
+    plot.xgrid.grid_line_color = 'lightgrey'
+
+    if not y_major_tick:
+        plot.yaxis.major_tick_line_color = None
+
+    if not xgrid:
+        plot.xgrid.grid_line_color = None
+
+    if not ygrid:
+        plot.ygrid.grid_line_color = None
+
 
 def color_mappers():
     colors_votefrac = {i: viridis(i)[::-1] for i in range(0,105,5)}
@@ -151,18 +483,31 @@ def color_mappers():
         palette = d3['Category20'][10]
     )
 
+    voters_density = LinearColorMapper(
+        palette = linear_palette(red256, 5),
+        low = 0,
+        high = 4
+    )
+
+    factorcmap = CategoricalColorMapper(
+        palette = d3['Category20'][10],
+        factors = []
+        )
+
     return {
         'district': district_mapper,
         'votefrac': {
             'mapper': votefrac_mapper,
             'whole_palette': colors_votefrac
             },
-        'diff_map': diff_mapper
+        'diff_map': diff_mapper,
+        'voters_density': voters_density,
+        'factorcmap': factorcmap
         }
 
-def create_sources(gdf):
+def create_sources():
     sources = {}
-    sources['geo'] = GeoJSONDataSource(geojson = gdf.to_json())
+    sources['geo'] = GeoJSONDataSource()
 
     sources['map_fake1'] = ColumnDataSource(
         data = {'x': [], 'y': [], 'legend': []}
@@ -170,6 +515,10 @@ def create_sources(gdf):
     sources['map_fake2'] = ColumnDataSource(
         data = {'x': [], 'y': [], 'legend': []}
         )
+
+    sources['election_results'] = ColumnDataSource(name = 'src_results')
+    sources['hist_voters_density'] = ColumnDataSource()
+    sources['voters_density_grid'] = ColumnDataSource()
 
     return sources
 
@@ -200,6 +549,7 @@ def add_legend(plot, renderer, margin, name):
         location = 'center',
         border_line_color = None,
         margin = margin,
+        spacing = 5,
         orientation = 'horizontal',
         label_text_font_size = config.MAP_FONT_SIZE,
         label_text_font = config.MAP_FONT,
@@ -212,14 +562,27 @@ def widgets(heatmap_type):
     heatmap_type_active = 0
     options = heatmap_type[heatmap_type_active]['options']
     
+    heatmap_type_wdg = RadioGroup(
+        labels = labels,
+        margin = RADIO_WDG_MARGIN,
+        min_width = WDG_MIN_WIDTH,
+        name = 'heatmap_type'
+        )
+
     map_select = Select(
         options = options,
         value = options[0],
+        margin = WDG_MARGIN,
+        min_width = WDG_MIN_WIDTH-WDG_MARGIN[1]-WDG_MARGIN[3],
+        sizing_mode = 'stretch_width',
         name = 'map_select'
         )
 
     select_div = Div(
         text = '<div class="div-text">test</div>',
+        margin = WDG_MARGIN,
+        min_width = WDG_MIN_WIDTH-WDG_MARGIN[1]-WDG_MARGIN[3],
+        sizing_mode = 'stretch_width',
         name = 'map_info'
         )
 
@@ -231,12 +594,10 @@ def widgets(heatmap_type):
         step = 0.05,
         format = NumeralTickFormatter(format = "0 %"),
         value = 0.4,
+        margin = WDG_MARGIN,
+        min_width = WDG_MIN_WIDTH-WDG_MARGIN[1]-WDG_MARGIN[3],
+        sizing_mode = 'stretch_width',
         name = 'mapper_slider'
-        )
-
-    heatmap_type_wdg = RadioGroup(
-        labels = labels,
-        name = 'heatmap_type'
         )
 
     return {
@@ -245,3 +606,41 @@ def widgets(heatmap_type):
         'mapper_slider': mapper_slider,
         'heatmap_type': heatmap_type_wdg
         }
+
+def dummy_legend_fig(width, markers):
+    '''
+    In order to have legend outside grid layout a dummy figure is created
+    and added to the layout.
+    '''
+    dummy_fig = figure(
+        width = width,
+        height = 50,
+        toolbar_location = None,
+        tools = ''
+        )
+    legend_items = []
+    for key, value in markers.items():
+        r = dummy_fig.scatter(
+            x = [1], y = [1],
+            size = 10,
+            marker = value['marker'],
+            color = value['color'],
+            alpha = value['alpha'],
+            visible = False
+            )
+        legend_items.append(LegendItem(label = str(key), renderers = [r]))
+
+    legend = Legend(
+        items = legend_items,
+        orientation = 'horizontal',
+        border_line_color = None,
+        location = 'bottom_center',
+        label_text_font_size = '13px'
+    )
+
+    dummy_fig.add_layout(legend)
+    dummy_fig.axis.visible = False
+    dummy_fig.grid.visible = False
+    dummy_fig.outline_line_width = 0
+
+    return dummy_fig
