@@ -1,46 +1,44 @@
 <!DOCTYPE html>
 <html lang='da-DK'>
 {% block preamble %}
-<link href="static/css/styles.css" rel="stylesheet">
-<script type="text/javascript" src="static/js/functions.js"></script>
+	<link href="static/css/styles.css" rel="stylesheet">
+	<script type="text/javascript" src="static/js/functions.js"></script>
 {% endblock %}
 
 {% block contents %}
-
 <div id="container">
 	<div class="row">
-	<div class="column1 white-bkgrd">
-		<h2 class="margin-lr">Folketingsvalg Danmark 2022</h2>
-		<p class="margin-lr">
-			Præsentation af resultater fra Folketingsvalget i 2022, og sammenligning med valget i 2019.
-			Danmarkskortet viser landets inddeling i opstillingskredse, og via kort kategori elementerne til højre for kortet, vælges der hvilken type data kortet farvelægges med. Det er muligt at zoom ind og ud på kortet, at flytte kortet samt gendanne kortet til oprindelig størrelse (reset knappen).
-		</p>
-	</div>
-	<div class="column2 white-bkgrd">
-		<h4>Data</h3>
-		<p>
-			Geografisk data: <a href="https://dawadocs.dataforsyningen.dk/">Danmarks Adressers Web API</a>
-			som har en åben API, Danmarks Administrative Geografiske Inddeling.
-		</p>
-		<p>
-			Folketingsvalg: <a href="https://www.dst.dk/">Danmarks Statistik</a> der blandt andet har valgresultater tilgængelig som åben data på xml format.
-		</p>
-	</div>
-</div>
-	<div class="row">
-		<div class="column1 white-bkgrd">
-			<p class="title-container">
-			 	<span id="map-title"></span>
-			 	<br>
-			 	<span id="sub-title" class="sub-title"></span>
+		<div class="column1">
+			<h2>Folketingsvalg Danmark 2022</h2>
+			<p>
+				Præsentation af resultater fra Folketingsvalget i 2022, og sammenligning med valget i 2019. Danmarkskortet viser landets inddeling i opstillingskredse, og via kort kategorielementerne til højre for kortet, vælges der hvilken type data kortet farvelægges med. Det er muligt at zoom ind og ud på kortet, at flytte kortet samt gendanne kortet til oprindelig størrelse (reset knappen). Kortet samt nogen af de andre figurer har information tilknyttet de enkelte elementer via markør (mus/finger).
 			</p>
+		</div>
+		<div class="column2">
+			<h4>Data</h4>
+			<p>
+				<span>Geografisk data</span>: 
+				<a href="https://dawadocs.dataforsyningen.dk/">Danmarks Adressers Web API</a>
+				<span>har en åben API, Danmarks Administrative Geografiske Inddeling.</span>
+			</p>
+			<p>
+				<span>Folketingsvalg</span>: 
+				<a href="https://www.dst.dk/">Danmarks Statistik</a>
+				<span>har valgresultater tilgængelig som åben data på xml format.</span>
+			</p>
+		</div>
+	</div>
+	<div class="row">
+		<div class="column1">
+			<h4 id="map-title"></h4>
+			<p id="sub-title" class="sub-title"></p>
 	   	{{ embed(roots.map) }}
-	   	<p class="map-refs">
+	   	<p class="reference">
 	   		Kilde: Danmarks Adressers Web API, Danmarks Statistik
 	   	</p>
 		</div>
-	  <div class="column2 white-bkgrd">
-	  	<h4>Kort kategori</h3>
+	  <div class="column2">
+	  	<h4>Kort kategori</h4>
 	  	{{ embed(roots.heatmap_type) }}
 	  	{{ embed(roots.map_select) }}
 	  	{{ embed(roots.map_info) }}
@@ -49,5 +47,56 @@
 	  	</div>
 		</div>	
 	</div>
+	<div class="column-wide">
+		<h3>Valgresultat 2022 sammenlignet med 2019</h3>
+		<p class="columns-2">
+			Vælgertilslutning på landsbasis for 2022 sammenlignet med 2019, samt ændring fra 2019 til 2022 (procent point). Moderaterne, Danmarksdemokraterne og Frie Grønne er alle nye partier i 2022, hvor Moderaterne fik 3. flest stemmer med 9,3 % og Danmarksdemokraterne fik 8,1 % hvilket var 5. flest stemmer. Af de etablerede partier havde Venstre den største tilbagegang målt i procent point på 10,1, mens Liberal Alliance havde den største fremgang på 5,6 procent point.<br>
+			Frie Grønne og Kristendemokraterne nåede ikke over spærregrænsen på 2 %. 
+		</p>
+		<div style="margin: auto;">
+			{{ embed(roots.charts_election_results) }}
+		</div>
+		<p class="reference">
+	   		Kilde: Danmarks Statistik
+	   	</p>
+	</div>
+	<div class="column-wide">
+		<h3>
+		  Partitilslutning i forhold til vælgertæthed
+		</h3>
+		<div class="row">
+			<p>
+				Vælgertæthed er her defineret som antal stemmeberettigede per km². Histogrammet viser fordelingen af opstillingskredse baseret på vælgertæthed per 2022. Bemærk at x-aksen er logaritmisk (basis 10). Aalborg Nord, Øst og Vest har vælgertæthed på omkring 150 personer per km², Aarhus Nord, Syd og Vest har tæthed på 410-500, mens Aarhus Øst har en tæthed på knap 1200 personer per km². Lyngby, Gentofte og kredsene i og omkring Københavns Indre By har også vælgertæthed over 1000 personer per km². Falkoner og Nørrebro er de eneste kredse med vælgertæthed på over 10.000 stemmeberettigede per km².
+			</p>
+			<div class="push-right">
+				{{ embed(roots.hist_voters_density) }}
+			</div>
+		</div>
+		<p class="columns-2">
+			Figurerne under viser vælgertilslutning (x-aksen) afbildet mod vælgertæthed (y-aksen) hvor hvert datapunkt repræsenterer en opstillingskreds. Der er to dataserier i hver figur, én for valget i 2022 og én serie for valget i 2019. Hver figur svarer til data for et parti, og det er kun partier der var opstillet til valget i 2022 som er medtaget. Hver figur har samme skala på y-aksen (logaritmisk), mens x-aksen varierer fra figur til figur på grund af stor forskel mellem de enkelte partier i vælgertilslutning.<br>
+			Det observeres blandt andet at partier som Radikale Venstre, SF, Enhedslisten og Alternativet opnår deres vælgertilslutning i de større byer (høj vælgertilslutning ved høj vælgertæthed). Alternativet er faktisk gået meget frem i kredse med vælgertæthed på over ca. 2000 stemmeberettigede per km² i forhold til forrige valg, hvor Enhedslisten tilgengæld er gået tilbage. <br>
+			Nye Borgerlige, Dansk Folkeparti, Venstre og Danmarksdemokraterne har alle i stor eller mindre grad en trend med større vælgertilslutning ved mindre vælgertæthed.<br>
+			De Radikale Venstre, Dansk Folkeparti og Venstre havde alle et dårlig 2022 valg og er gået tilbage i stort set alle distrikter.
+		</p>
+		<div class="row">
+			<div class="rotate-text">
+			  Vælgertæthed (stemmeberettigede per km²)
+			</div>
+			<div class="push-left">
+				{{ embed(roots.voters_density_grid) }}
+			</div>
+		</div>
+		<p class="reference">
+	  	Kilde: Danmarks Adressers Web API, Danmarks Statistik
+	  </p>
+	</div>
+	<footer>
+		<p>
+			<span>Kode tilgængelig på GitHub </span>
+			<a href="https://github.com/carve11/folketingsvalg">
+				<img src="static/img/github.png" alt="GitHub" style="width:15px;">
+			</a>
+		</p>
+	</footer>
 </div>
 {% endblock %}

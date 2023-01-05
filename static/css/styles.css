@@ -5,42 +5,87 @@ body, p, div, span, .bk-root, .bk {
 }
 
 body {
-    background-color: lavenderblush;
+  background-color: lavenderblush;
+  margin-top: 10px;
+  padding-top: 0px;
 }
 
 input {
   accent-color: black;
 }
 
-h2 {
-  margin-top: 5px;
+h2, h3, h4, p {
+  margin-top: 0px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 5px;
 }
 
 h4 {
-    margin-top: 5px;
-    margin-bottom: 0px;
-    font-weight: 500;
+  margin-bottom: 0px;
+  font-weight: 500;
 }
 
-p {
-    margin-top: 5px
-}
-
-.white-bkgrd {
-  background-color: white;
+img {
+  display: flex;
+  height: auto;
+  margin-left: 5px;
 }
 
 #container {
-    max-width: 1000px;
-    margin: auto;
+  max-width: 1000px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.column1 {
+  background-color: white;
+  flex: 0 0 600px;
+  margin-top: 10px;
+  margin-left: 20px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.column2 {
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 280px;
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 20px;
+  margin-bottom: 10px;
+}
+
+.column-wide {
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
+  margin-bottom: 10px;
+}
+
+.columns-2 {
+  column-count: 2;
 }
 
 .div-text {
-    font-size: 0.875rem;
+  font-size: 0.875rem;
 }
 
 .list {
-    margin-top: 2px;
+  margin-top: 2px;
+  padding-left: 25px;
 }
 
 .title-container {
@@ -53,51 +98,60 @@ p {
   margin-top: 0px;
 }
 
-#map-title {
-  font-weight: 500;
-}
 .sub-title {
   font-size: 0.875rem;
   font-weight: 300;
+  padding-top: 0px;
+  height: 20px;
 }
 
-.map-refs {
-  font-size: 0.5rem;
+.reference {
+  font-size: 8px;
   padding-left: 10px;
-  padding-right: 10px;
-  margin-top: 0px;
-}
-
-.row {
-  display: flex;
-}
-
-.column1 {
-  flex: 0 0 600px;
-  margin: 10px;
-}
-
-.column2 {
-  flex-direction: column;
-  display: flex;
-  flex: 0 0 310px;
-  margin: 10px;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.margin-lr {
-  margin-left: 10px;
-  margin-right: 10px;
+  margin-top: 5px;
 }
 
 .push-down {
-    margin-top: auto;
+  margin-top: auto;
+}
+
+.push-right {
+  margin-left: auto;
+}
+
+.push-left {
+  margin-right: auto;
+}
+
+.rotate-text {
+  transform: rotate(270deg);
+  margin-left: auto;
+  width: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+footer {
+  background-color: white;
+  margin-top: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
+  margin-bottom: 10px;
+}
+
+footer p {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
 }
 
 .bk-root .bk-input-group input[type="checkbox"] + span,
 .bk-root .bk-input-group input[type="radio"] + span {
-    top: 0px;
+  top: 0px;
 }
 
 .bk-root .bk-input:focus {
@@ -108,5 +162,5 @@ p {
 
 .bk .bk-input,
 .bk .bk-input-group {
-    font-size: 0.875rem;
+  font-size: 0.875rem;
 }
