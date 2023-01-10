@@ -32,7 +32,7 @@ class Folketingsvalg:
         self.p_map = Map(self.srcs)
 
         self.p_election_results = ElectionBarCharts(
-            srcs = self.srcs,
+            src = self.srcs['election_results'],
             plot_cols = list(self.vote.keys()),
             y_cat = 'party_shortname'
             )
@@ -165,22 +165,10 @@ class Folketingsvalg:
                 )
             )
 
-        self.wdgs['mapper_slider'].js_on_change(
-            'value', 
-            CustomJS(
-                args = {
-                    'mapper': self.p_map.mapper['votefrac']['mapper'],
-                    'palette': self.p_map.mapper['votefrac']['whole_palette']
-                },
-                code = callback_js_code.mapper_js_cb_code
-                )
-            )
-
         self.wdgs['heatmap_type'].js_on_click(
              CustomJS(
                 args = {
                 'plot': p,
-                'mapper_slider': self.wdgs['mapper_slider'],
                 'map_select': self.wdgs['map_select'],
                 'heatmap_type_items': self.heatmap_type_items,
                 },
