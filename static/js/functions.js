@@ -1,5 +1,5 @@
 // functions.js
-function formatAsPercent(num) {
+function formatAsPercent(num, digits = 2) {
   var signi_digi = 3;
   if (num < 0.00995) {
     signi_digi = 2;
@@ -7,11 +7,28 @@ function formatAsPercent(num) {
   if (num < 0.00095) {
     signi_digi = 1;
   }
+  if (digits == 0) signi_digi = 3;
   return new Intl.NumberFormat('default', {
     style: 'percent',
-    maximumFractionDigits: 2,
+    maximumFractionDigits: digits,
     maximumSignificantDigits: signi_digi,
     minimumSignificantDigits: signi_digi,
+  }).format(num);
+}
+
+function pctTicker(num, digits) {
+  var min_signi_digi = 1;
+  var max_signi_digi = 10;
+  if (digits == 1) {
+    if (num < 0.00995) min_signi_digi = digits;
+    else if (num < 0.0995) min_signi_digi += digits;
+    else min_signi_digi = 3;
+  }
+  return new Intl.NumberFormat('default', {
+    style: 'percent',
+    minimumFractionDigits: digits,
+    //maximumSignificantDigits: signi_digi,
+    minimumSignificantDigits: min_signi_digi,
   }).format(num);
 }
 
@@ -19,6 +36,7 @@ function formatAsIntl(num, digits = 2, sign = 'auto') {
   var minFracDig = 0;
   if (num < 10) minFracDig = 1;
   if (num < 1) minFracDig = Math.min(digits, 2);
+  if (digits == 0) minFracDig = 0;
   return new Intl.NumberFormat('default', {
     style: 'decimal',
     signDisplay: sign,
@@ -354,6 +372,106 @@ function localeDataSources() {
     data[elem] = arr;
   });
   cds.change.emit();
+}
+
+function colorbarFormat(colorbar, format) {
+  // const diff_high_low = colorbar.color_mapper.high - colorbar.color_mapper.low;
+  // var format = '0 %';
+  // if (diff_high_low <= 0.05) format = '0.0 %';
+  // if (diff_high_low <= 0.01) format = '0.00 %';
+  if (format == 'num') {
+    colorbar.formatter.code = 'return formatAsIntl(tick);'
+  }
+  if (format == 'pct') {
+    colorbar.formatter.code = 'return formatAsPercent(tick);'
+  }
+  const cbscript = window.Bokeh.documents[0].get_model_by_name('color_bar_cb_code');
+  console.log(cbscript);
+  cbscript.execute();
+  //colorbar.formatter.format = format;
+}
+
+function colorbarTicker(colorbar, scale = 1) {
+  var high = colorbar.color_mapper.high;
+  var low = colorbar.color_mapper.low;
+  
+  low *= scale;
+  high *= scale;
+  const scale_size = high - low;
+  var no_ticks = 10;
+  var intv = Math.trunc(scale_size / (no_ticks-1));
+  for (const i of [0.5, 1, 2, 3, 5, 15]) {
+    if (scale_size % i != 0) continue;
+
+    no_ticks = Math.trunc(scale_size / i)+1;
+    intv = i;
+    if ((no_ticks > 9) & (low >= 0)) continue;
+    if ((no_ticks > 11) & (low < 0)) continue;
+    else break;
+  }
+  const ticker = [];
+  for (i = 0; i < no_ticks; i ++) {
+    ticker.push((low + intv*i)/scale);
+  }
+  return ticker;
+}
+
+function mapperHighLow(min_val, max_val) {
+  var low = Math.floor(min_val * 100);
+  var high = Math.ceil(max_val * 100);
+  var scale_size = high - low;
+  var pal_size = 10
+  
+  if (scale_size <= 10) {
+    if ([1, 2].includes(scale_size)) pal_size = 8;
+    else if ([3, 6].includes(scale_size)) pal_size = 6;
+    else if ([4, 8].includes(scale_size)) pal_size = 8;
+    else pal_size = Math.trunc(scale_size);
+  }
+
+  if (scale_size > 10) {
+    if (low % 5 == 4) low += 1;
+    else if (low % 5 != 0) low = (Math.trunc(low/5))*5;
+
+    if (high % 5 == 1) high -= 1;
+    else if (high % 5 != 0) high = (Math.trunc(high/5)+1)*5;
+
+    pal_size = high-low;
+  }
+  low = Math.trunc(low)/100;
+  high = Math.trunc(high)/100;
+
+  return {low, high, pal_size};
+}
+
+function partyVoteShareMapper(vote_data, party, mapper, palette) {
+  var min_val = 1.0;
+  var max_val = 0.0;
+  for (const year of Object.keys(vote_data)) {
+    if (vote_data[year]['parties']['parties'].includes(party)) {
+      const data = vote_data[year]['data']['opstillingskredse'][party]['VoteFrac'];
+      min_val = Math.min(...data, min_val);
+      max_val = Math.max(...data, max_val);
+    }
+  }
+
+  const {low, high, pal_size} = mapperHighLow(min_val, max_val);
+
+  mapper.low = low;
+  mapper.high = high;
+  mapper.palette = palette[pal_size];
+}
+
+// function updateMapper(vote_data, ) {
+//   partyVoteShareMapper(vote_data, map_select.value, color_mapper['votefrac']['mapper'], color_mapper['votefrac']['whole_palette']);
+//     color_bar.color_mapper = color_mapper['votefrac']['mapper'];
+//     colorbarFormat(color_bar);
+//     color_bar.ticker.ticks = colorbarTicker(color_bar, 100);
+
+function updateColorbar(colorbar, mapper, format, tick_scale) {
+  colorbar.color_mapper = mapper;
+  //colorbarFormat(format);
+  colorbar.ticker.ticks = colorbarTicker(colorbar, tick_scale);
 }
 
 function runBkScript() {
