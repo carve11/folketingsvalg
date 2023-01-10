@@ -2,9 +2,9 @@
 from bokeh.plotting import figure
 from bokeh.models import GeoJSONDataSource, ColumnDataSource
 from bokeh.models import LinearColorMapper, CategoricalColorMapper
-from bokeh.models import Legend, LegendItem, HoverTool, Label
+from bokeh.models import Legend, LegendItem, HoverTool, Label, FixedTicker
 from bokeh.models import ColorBar, NumeralTickFormatter, FuncTickFormatter
-from bokeh.models import Select, Slider, Div, RadioGroup, Span
+from bokeh.models import Select, Div, RadioGroup, Span
 from bokeh.palettes import d3, viridis, linear_palette, Reds3, Blues3
 from bokeh.transform import factor_cmap, linear_cmap, dodge, transform
 from bokeh.layouts import gridplot, row, column
@@ -62,10 +62,11 @@ class Map:
             ys = 'ys',
             fill_color = fill_color,
             fill_alpha = 0.7,
-            line_color = 'black',
+            line_color = 'white',
             line_width = 0.5,
             hover_line_color = 'firebrick',
             hover_line_width = 1,
+            hover_fill_color = 'orange',
             hover_fill_alpha = 1,
             source = self.srcs['geo'],
             name = 'patch_glyph',
@@ -99,16 +100,28 @@ class Map:
     def color_bar(self):
         color_bar = ColorBar(
             color_mapper = self.mapper['votefrac']['mapper'],
-            label_standoff = 2,
-            formatter = NumeralTickFormatter(format = "0 %"),
+            label_standoff = 4,
             orientation = 'horizontal',
             height = 10,
             width = config.MAP_WIDTH - 70,
             major_label_text_font_size = config.MAP_FONT_SIZE,
             major_label_text_font = config.MAP_FONT,
+            ticker = FixedTicker(ticks=[0, 0.5]),
             name = 'color_bar',
             visible = False
             )
+        color_bar.formatter = FuncTickFormatter(
+            code = '''
+            if (ticks[0] >= 0) {
+              var digits = 0;
+              const diff = ticks[ticks.length-1] - ticks[0];
+              if (diff <= 0.05) digits = 1;
+              if (diff <= 0.01) digits = 2;
+              return pctTicker(tick, digits);
+            } else {
+              return formatAsIntl(tick, 0);
+            }'''
+        )
         self.p.add_layout(color_bar, 'below')
 
     def map_text(self):
@@ -136,8 +149,8 @@ class ElectionBarCharts:
     between those 2 elections.
     Assume the source has been sorted correctly by plot_cols[0]
     '''
-    def __init__(self, srcs, plot_cols, y_cat):
-        self.src = srcs['election_results']
+    def __init__(self, src, plot_cols, y_cat):
+        self.src = src
         self.plot_cols = sorted(plot_cols, reverse = True)
         self.y_cat = y_cat
         self.plots = self.charts()
@@ -187,10 +200,10 @@ class ElectionBarCharts:
             self.plot_cols[1]: {},
         }
         p_data[self.plot_cols[0]]['offset'] = 0.2
-        p_data[self.plot_cols[0]]['color'] = 'navy' #'#718dbf'
+        p_data[self.plot_cols[0]]['color'] = 'navy'
 
         p_data[self.plot_cols[1]]['offset'] = -0.2
-        p_data[self.plot_cols[1]]['color'] = 'olive' #'#c9d9d3'
+        p_data[self.plot_cols[1]]['color'] = 'olive'
 
         for year in self.plot_cols:
             y = dodge(self.y_cat, p_data[year]['offset'], range = plot.y_range)
@@ -267,7 +280,7 @@ class ElectionBarCharts:
         zero_line = Span(
             location = 0,
             dimension = 'height',
-            line_color = 'lightgrey',#'#e5e5e5',
+            line_color = 'lightgrey',
             line_width = 0.5
             )
         plot.add_layout(zero_line)
@@ -414,8 +427,6 @@ class PartyDensityGridPlot:
             p.axis.major_label_text_font_size = '13px'
             p.axis.axis_line_color = None
             p.background_fill_color = '#efefef'
-            #p.ygrid.grid_line_color = 'lightgrey'
-            #p.xgrid.grid_line_color = 'lightgrey'
             p.xaxis[0].formatter = NumeralTickFormatter(format = "0 %")
             p.xaxis.ticker.desired_num_ticks = 5
             p.x_range.range_padding = 0.2
@@ -439,7 +450,6 @@ def plot_styling(plot, xgrid = True, ygrid = True, y_major_tick = True):
     plot.outline_line_color = None
     plot.xaxis.minor_tick_line_color = None
     plot.xaxis.major_tick_in = 0
-    #plot.yaxis.axis_line_color = None
     plot.yaxis.minor_tick_line_color = None
     plot.axis.major_tick_line_color = 'lightgrey'
     plot.axis.axis_line_color = 'lightgrey'
@@ -455,25 +465,30 @@ def plot_styling(plot, xgrid = True, ygrid = True, y_major_tick = True):
     if not ygrid:
         plot.ygrid.grid_line_color = None
 
-
-def color_mappers():
-    colors_votefrac = {i: viridis(i)[::-1] for i in range(0,105,5)}
-
+def palettes():
     red256 = [mp_colors.to_hex(x) for x in mp_cm.Reds(np.arange(256) / 255)]
-    red10 = linear_palette(red256, 10)
+    red10 = linear_palette(red256, 11)[1:]
     blue256 = [mp_colors.to_hex(x) for x in mp_cm.Blues(np.arange(256) / 255)]
-    blue10 = linear_palette(blue256, 10)
+    blue10 = linear_palette(blue256, 11)[1:]
 
     blue_red = blue10[::-1] + red10
 
+    pal_dict = {i: linear_palette(red256, i+1)[1:] for i in [4,5,6,7,8,9]}
+    pal_dict.update({i: linear_palette(red256, i+1)[1:] for i in range(10,75,5)})
+
+    return {'blue_red': blue_red, 'red256': red256, 'pal_dict': pal_dict}
+
+def color_mappers():
+    color_pal = palettes()
+
     diff_mapper = LinearColorMapper(
-        palette = blue_red,
+        palette = color_pal['blue_red'],
         low = -10,
         high = 10
         )
 
     votefrac_mapper = LinearColorMapper(
-        palette = colors_votefrac[INIT_PALETTE_SIZE],
+        palette = color_pal['pal_dict'][INIT_PALETTE_SIZE],
         low = 0,
         high = INIT_MAPPER_HIGH
         )
@@ -484,7 +499,7 @@ def color_mappers():
     )
 
     voters_density = LinearColorMapper(
-        palette = linear_palette(red256, 5),
+        palette = linear_palette(color_pal['red256'], 6)[1:],
         low = 0,
         high = 4
     )
@@ -498,7 +513,7 @@ def color_mappers():
         'district': district_mapper,
         'votefrac': {
             'mapper': votefrac_mapper,
-            'whole_palette': colors_votefrac
+            'whole_palette': color_pal['pal_dict']
             },
         'diff_map': diff_mapper,
         'voters_density': voters_density,
@@ -532,6 +547,7 @@ def rect_glyph(plot, source, mapper, name):
         height_units = 'screen',
         fill_color = {'field': 'legend', 'transform': mapper},
         fill_alpha = 0.7,
+        visible = False,
         name = name,
         source = source
         )
@@ -586,24 +602,9 @@ def widgets(heatmap_type):
         name = 'map_info'
         )
 
-    mapper_slider = Slider(
-        title = 'Maksimum værdi farveskala',
-        show_value = False,
-        start = 0.05,
-        end = 1,
-        step = 0.05,
-        format = NumeralTickFormatter(format = "0 %"),
-        value = 0.4,
-        margin = WDG_MARGIN,
-        min_width = WDG_MIN_WIDTH-WDG_MARGIN[1]-WDG_MARGIN[3],
-        sizing_mode = 'stretch_width',
-        name = 'mapper_slider'
-        )
-
     return {
         'map_select': map_select,
         'select_div': select_div,
-        'mapper_slider': mapper_slider,
         'heatmap_type': heatmap_type_wdg
         }
 
