@@ -1,11 +1,5 @@
 # callback_js_code.py
 
-mapper_js_cb_code = '''
-  const val = Math.round(cb_obj.value*100)/100;
-  mapper.high = val;
-  mapper.palette = palette[Math.max(10, Math.trunc(val*100))];
-'''
-
 map_select_js_cb_code = '''
   // Map select drop down callback JS code. 
   // Based on selected value and the chosen option in radio group widget
@@ -29,8 +23,10 @@ map_select_js_cb_code = '''
     main_title += short_name + ' - ' + heatmap_type_wdg.labels[heatmap_type_wdg.active];
     sub_title += 'Ændring i procentpoint per opstillingskreds';
     party_select_div.text = mapSelectPartyDiffTxt(years, vote_data, map_select.value, geo_data);
-    color_bar.color_mapper = color_mapper['diff_map'];
-    color_bar.formatter.format = '0';
+    //color_bar.color_mapper = color_mapper['diff_map'];
+    //color_bar.formatter.format = '0';
+    //color_bar.ticker.ticks = colorbarTicker(color_bar, 1);
+    updateColorbar(color_bar, color_mapper['diff_map'], 'num', 1);
     patch_glyph.glyph.fill_color = {field: 'value', transform: color_mapper['diff_map']};
     geo_src.change.emit();
   }
@@ -43,8 +39,11 @@ map_select_js_cb_code = '''
     main_title += short_name + ' - ' + heatmap_type_wdg.labels[heatmap_type_wdg.active];
     sub_title += 'Stemmeandel (%) per opstillingskreds';
     party_select_div.text = mapSelectPartyTxt(geo_data, vote_data[year]['data'], map_select.value);
-    color_bar.color_mapper = color_mapper['votefrac']['mapper'];
-    color_bar.formatter.format = '0 %';
+    partyVoteShareMapper(vote_data, map_select.value, color_mapper['votefrac']['mapper'], color_mapper['votefrac']['whole_palette']);
+    //color_bar.color_mapper = color_mapper['votefrac']['mapper'];
+    //colorbarFormat(color_bar);
+    //color_bar.ticker.ticks = colorbarTicker(color_bar, 100);
+    updateColorbar(color_bar, color_mapper['votefrac']['mapper'], 'pct', 100);
     patch_glyph.glyph.fill_color = {field: 'value', transform: color_mapper['votefrac']['mapper']};
     geo_src.change.emit();
   }
@@ -140,12 +139,10 @@ heatmap_type_js_cb_code = '''
   const lgnd2 = plot.select(name = 'legend2')[0];
 
   if ((heatmap_type == 'district') || (heatmap_type == 'voters_density')) {
-    mapper_slider.visible = false;
     color_bar.visible = false;
   }
   if ((heatmap_type == 'value') || (heatmap_type == 'diff')) {
     color_bar.visible = true;
-    mapper_slider.visible = heatmap_type == 'value';
     lgnd1.visible = false;
     lgnd2.visible = false;
   }
