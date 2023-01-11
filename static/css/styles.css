@@ -1,29 +1,64 @@
-body, p, div, span, .bk-root, .bk {
-  font-family: "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-weight: 300;
-  color: #444444;
+html {
+  font-family: sans-serif;
+  font-size: 62.5%; 
+  -ms-text-size-adjust: 100%; 
+  -webkit-text-size-adjust: 100%; 
 }
 
 body {
+  font-size: 1.6em; 
+  line-height: 1.3;
+  font-weight: 300;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Oxygen, Cantarell, sans-serif;
+  color: #444444;
+  margin: 0px;
   background-color: lavenderblush;
-  margin-top: 10px;
   padding-top: 0px;
+  margin-top: 10px;
+}
+
+.bk, .bk-root {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 input {
   accent-color: black;
 }
 
-h2, h3, h4, p {
+h1, h2, h3, h4 {
   margin-top: 0px;
   padding-left: 10px;
   padding-right: 10px;
   padding-top: 5px;
+  font-weight: 200;
+  margin-bottom: 2rem;
 }
 
+h1 { 
+  font-size: 3.6rem;
+  letter-spacing: -.08rem;
+}
+h2 {
+  font-size: 3.0rem;
+  letter-spacing: -.05rem;
+}
+h3 {
+  font-size: 2.4rem;
+  letter-spacing: -.02rem;
+}
 h4 {
+  font-size: 1.8rem;
+  font-weight: 400;
   margin-bottom: 0px;
-  font-weight: 500;
+}
+
+p {
+  margin-top: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 5px;
 }
 
 img {
@@ -80,7 +115,7 @@ img {
 }
 
 .div-text {
-  font-size: 0.875rem;
+  font-size: 1.4rem;
 }
 
 .list {
@@ -99,8 +134,7 @@ img {
 }
 
 .sub-title {
-  font-size: 0.875rem;
-  font-weight: 300;
+  font-size: 1.4rem;
   padding-top: 0px;
   height: 20px;
 }
@@ -131,7 +165,7 @@ img {
   justify-content: center;
   align-items: center;
   white-space: nowrap;
-  font-size: 0.875rem;
+  font-size: 1.4rem;
 }
 
 footer {
@@ -146,7 +180,7 @@ footer p {
   display: flex;
   align-items: center;
   margin-bottom: 5px;
-  font-size: 0.8rem;
+  font-size: 1.4rem;
 }
 
 .bk-root .bk-input-group input[type="checkbox"] + span,
@@ -155,12 +189,12 @@ footer p {
 }
 
 .bk-root .bk-input:focus {
- border-color:#44444480;
+ border-color: #44444480;
  outline:0;
  box-shadow:inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(0, 0, 0, 0.6);
 }
 
 .bk .bk-input,
 .bk .bk-input-group {
-  font-size: 0.875rem;
+  font-size: 1.4rem;
 }
