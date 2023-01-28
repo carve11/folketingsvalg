@@ -14,7 +14,6 @@ body {
   margin: 0px;
   background-color: lavenderblush;
   padding-top: 0px;
-  margin-top: 10px;
 }
 
 .bk, .bk-root {
@@ -27,7 +26,7 @@ input {
   accent-color: black;
 }
 
-h1, h2, h3, h4 {
+h1, h2, h3, h4, h5, h6 {
   margin-top: 0px;
   padding-left: 10px;
   padding-right: 10px;
@@ -53,6 +52,16 @@ h4 {
   font-weight: 400;
   margin-bottom: 0px;
 }
+h5 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  margin-bottom: 0px;
+}
+h6 {
+  font-size: 1.4rem;
+  font-weight: 500;
+  margin-bottom: 0px;
+}
 
 p {
   margin-top: 0;
@@ -67,11 +76,83 @@ img {
   margin-left: 5px;
 }
 
-#container {
+select {
+  text-transform: none;
+  color: inherit; 
+  font: inherit; 
+  font-size: 1.4rem;
+  margin: 0; 
+}
+
+select {
+  height: 31px;
+  padding-left: 10px;
+  padding-right: 30px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: none;
+  box-sizing: border-box; 
+}
+
+select, .bk-root select:not([multiple]).bk-input {
+  background-image: url('data:image/svg+xml;utf8,<svg version="1.1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M 0,6 12,18 24,6" fill="none" stroke="%23444444" stroke-width="4" stroke-linejoin="round"/></svg>');
+  background-position: right 0.5em center;
+  background-size: 10px 10px;
+  background-repeat: no-repeat;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.container {
   max-width: 1000px;
   margin: auto;
   display: flex;
   flex-direction: column;
+}
+
+.top-container {
+  max-width: 1000px;
+  margin: auto;
+  height: 60px;
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  z-index: 99;
+  height: 50px;
+  width: 100%;
+  max-width: inherit;
+}
+
+.header-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0px;
+  height: inherit;
+  align-items: center;
+  background-color: #444;
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.header-right {
+  margin-right: 10px;
+  margin-left: auto;
+}
+
+.header-left {
+  margin-left: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0px;
+  margin-bottom: 0px;
+  font-size: 1.4rem;
 }
 
 .row {
@@ -114,23 +195,14 @@ img {
   column-count: 2;
 }
 
-.div-text {
+.bk-div-text {
   font-size: 1.4rem;
 }
 
 .list {
   margin-top: 2px;
   padding-left: 25px;
-}
-
-.title-container {
-  height: 45px;
-  margin-bottom: 0px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
-  margin-top: 0px;
+  width: 100%;
 }
 
 .sub-title {
@@ -143,10 +215,6 @@ img {
   font-size: 8px;
   padding-left: 10px;
   margin-top: 5px;
-}
-
-.push-down {
-  margin-top: auto;
 }
 
 .push-right {
@@ -168,19 +236,20 @@ img {
   font-size: 1.4rem;
 }
 
-footer {
-  background-color: white;
-  margin-top: 10px;
-  margin-left: 20px;
-  margin-right: 20px;
-  margin-bottom: 10px;
+.heading-bar-result-left {
+  flex: 8;
+  display: flex;
+  justify-content: center;
 }
 
-footer p {
+.heading-bar-result-right {
+  flex: 5;
   display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  font-size: 1.4rem;
+  justify-content: center;
+}
+
+.flex-1 {
+  flex: 1;
 }
 
 .bk-root .bk-input-group input[type="checkbox"] + span,
