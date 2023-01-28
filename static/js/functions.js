@@ -1,14 +1,17 @@
 // functions.js
-function formatAsPercent(num, digits = 2) {
+function formatAsPercent(num) {
+  var digits = 1;
   var signi_digi = 3;
-  if (num < 0.00995) {
+  if (num < 0.0995) {
     signi_digi = 2;
   }
-  if (num < 0.00095) {
+  if (num < 0.00995) {
     signi_digi = 1;
   }
-  if (digits == 0) signi_digi = 3;
-  return new Intl.NumberFormat('default', {
+  if (num < 0.000995) {
+    digits = 2;
+  }
+  return new Intl.NumberFormat(localeTags[locale], {
     style: 'percent',
     maximumFractionDigits: digits,
     maximumSignificantDigits: signi_digi,
@@ -18,26 +21,33 @@ function formatAsPercent(num, digits = 2) {
 
 function pctTicker(num, digits) {
   var min_signi_digi = 1;
-  var max_signi_digi = 10;
+
   if (digits == 1) {
     if (num < 0.00995) min_signi_digi = digits;
     else if (num < 0.0995) min_signi_digi += digits;
     else min_signi_digi = 3;
   }
-  return new Intl.NumberFormat('default', {
+  return new Intl.NumberFormat(localeTags[locale], {
     style: 'percent',
     minimumFractionDigits: digits,
-    //maximumSignificantDigits: signi_digi,
     minimumSignificantDigits: min_signi_digi,
   }).format(num);
 }
 
-function formatAsIntl(num, digits = 2, sign = 'auto') {
+function formatAsIntl(value) {
+  var digits = 1;
+  var sign = 'auto';
+  const {num, ...options} = value;
+  
+  if (Object.hasOwn(options, 'digits')) digits = options.digits;
+  if (Object.hasOwn(options, 'sign')) sign = options.sign;
+  
   var minFracDig = 0;
   if (num < 10) minFracDig = 1;
   if (num < 1) minFracDig = Math.min(digits, 2);
   if (digits == 0) minFracDig = 0;
-  return new Intl.NumberFormat('default', {
+
+  return new Intl.NumberFormat(localeTags[locale], {
     style: 'decimal',
     signDisplay: sign,
     minimumFractionDigits: minFracDig,
@@ -51,128 +61,222 @@ function arrayFill(length, value) {
   return array;
 }
 
-function votesAndPct(votes, vote_pct) {
-  const str1 = formatAsIntl(votes);
-  const str2 = formatAsPercent(vote_pct);
-  return `${str1} (${str2})`;
+function valuePcti18nAttr(num, pct_as_frac) {
+  return {
+    value: {num: num, style: "decimal"},
+    pct: {num: pct_as_frac, style: "pct"}
+  };
 }
 
-function arrElem2Text(str_arr, list_type = 'bullet') {
-  var txt = '';
-  if (list_type == 'bullet') {
-    txt += '<ul class="list">';
-    txt += '<li>';
-    txt += str_arr.join('</li><li>');
-    txt += '</li></ul>';
-  } else {
-    txt += str_arr.join('\n');
-  }
-  return txt;
+function valuei18nAttr(num, options = {}) {
+  return {
+    value: {num: num, style: "decimal", ...options},
+  };
 }
 
-function listPartyResults(party_votes, party_frac, total_votes) {
-  const str_arr = [];
-  str_arr.push(`Stemmer: ${votesAndPct(party_votes, party_frac)}`);
-  str_arr.push(`Stemme grundlag: ${formatAsIntl(total_votes)}`);
+function stri18nAttr(str) {
+  return {str: `${str}`};
+}
 
-  return arrElem2Text(str_arr, 'list');
+function strStri18nAttr(str1, str2) {
+  return {
+    str1: {str: `${str1}`},
+    str2: {str: `${str2}`},
+  };
+}
+
+function strValPcti18nAttr(str, num, pct_as_frac) {
+  return {
+    str: {str: `${str}`},
+    value: {num: num, style: "decimal"},
+    pct: {num: pct_as_frac, style: "pct"}
+  };
+}
+
+function i18nKeyValue(key, valObj) {
+  return `i18n-key="${key}" i18n-val='${JSON.stringify(valObj)}'`;
 }
 
 function listPartyResultsNational(vote_data, party) {
   const {votes, votes_frac, votes_total} = votesDistrict(vote_data, party, 'Hele landet');
   const {eligible_voters, eligible_voters_vote} = districtVoteData(vote_data, 'Hele landet');
   const eligible_frac = eligible_voters_vote / eligible_voters;
-  const str_arr = [];
-  str_arr.push(`Stemmer: ${votesAndPct(votes, votes_frac)}`);
-  str_arr.push(`Gyldige stemmer: ${formatAsIntl(votes_total)}`);
-  str_arr.push(`Afgivne stemmer: ${votesAndPct(eligible_voters_vote, eligible_frac)}`);
-  str_arr.push(`Stemmeberettigede: ${formatAsIntl(eligible_voters)}`);
 
-  return arrElem2Text(str_arr, 'bullet');
+  var txt = '';
+  txt += '<ul class="list">';
+  txt += `<li ${i18nKeyValue("votes", valuePcti18nAttr(votes, votes_frac))}'></li>`;
+  txt += `<li ${i18nKeyValue("valid_votes", valuei18nAttr(votes_total))}'></li>`;
+  txt += `<li ${i18nKeyValue("total_votes", valuePcti18nAttr(eligible_voters_vote, eligible_frac))}'></li>`;
+  txt += `<li ${i18nKeyValue("entitled_voters", valuei18nAttr(eligible_voters))}'></li>`;
+  txt += '</ul>';
+
+  return txt;
 }
 
-function highLowDistrictTxt(geo_data, votes_district, party, min_max) {
+function listPartyHighLowDistrict(geo_data, votes_district, party, min_max) {
   const {location, val} = geoDataLocationMinMax(geo_data, min_max);
   const {votes, votes_frac, votes_total} = votesDistrict(votes_district, party, location);
-  const str_arr = [];
-  str_arr.push(`Opstillingskreds: ${location}`);
-  str_arr.push(`Stemmer: ${votesAndPct(votes, votes_frac)}`);
-  str_arr.push(`Stemme grundlag: ${formatAsIntl(votes_total)}`);
 
-  return arrElem2Text(str_arr, 'bullet');
+  var txt = '';
+  txt += '<ul class="list">';
+  txt += `<li ${i18nKeyValue("nomination_district", stri18nAttr(location))}'></li>`;
+  txt += `<li ${i18nKeyValue("votes", valuePcti18nAttr(votes, votes_frac))}'></li>`;
+  txt += `<li ${i18nKeyValue("valid_votes", valuei18nAttr(votes_total))}'></li>`;
+  txt += '</ul>';
+
+  return txt;
 }
 
 function mapSelectPartyTxt(geo_data, vote_data, party) {
-  var txt = '<div class="div-text">';
-  txt += 'Landsresultat';
+  var txt = '<div class="bk-div-text">';
+  txt += '<span i18n-key="country-result"></span>';
   txt += listPartyResultsNational(vote_data['Land'], party);
-  txt += 'Højeste stemmeandel'
-  txt += highLowDistrictTxt(geo_data, vote_data['opstillingskredse'], party, 'max')
-  txt += 'Laveste stemmeandel'
-  txt += highLowDistrictTxt(geo_data, vote_data['opstillingskredse'], party, 'min')
-  txt += '</div>'
 
-  return txt;
+  txt += '<span i18n-key="highest-voteshare"></span>';
+  txt += listPartyHighLowDistrict(geo_data, vote_data['opstillingskredse'], party, 'max');
+
+  txt += '<span i18n-key="lowest-voteshare"></span>';
+  txt += listPartyHighLowDistrict(geo_data, vote_data['opstillingskredse'], party, 'min');
+  txt += '</div>';
+
+  updateBokehDivTxt(txt);
+}
+
+function updateBokehDivTxt(txt) {
+  party_select_div = window.Bokeh.documents[0].get_model_by_name('map_info');
+  party_select_div.text = txt;
+
+  const attr_name = attrNames(txt, "i18n-key");
+  attr_name.forEach((item) => {
+    const elements = document.querySelectorAll(`[i18n-key=${item}]`);
+    
+    elements.forEach((elm) => {
+      updateElementTxt(elm);
+    });
+  });
+}
+
+function attrNames(string, attr_name) {
+  const arr = [];
+  const re = new RegExp(`${attr_name}="(.*?)"`, "g");
+  for (const match of string.matchAll(re)) {
+    arr.push(match[1]);
+  }
+  return arr;
 }
 
 function mapSelectPartyDiffTxt(years, vote_data, party, geo_data) {
-  const str_arr = votesDiffDistrict(years, vote_data, party, 'Land', 'Hele landet');
-  var txt = '<div class="div-text">'
+  var txt = '<div class="bk-div-text">';
   txt += onlyHighLowTxt(geo_data);
-  txt += 'Landsresultat';
-  txt += arrElem2Text(str_arr, 'bullet');
-  txt += districtHighestDiffChg(years, vote_data, party, geo_data);
-  txt += districtLowestDiffChg(years, vote_data, party, geo_data);
-  txt += '</div>'
-  
-  return txt;
+
+  txt += '<span i18n-key="country-result"></span>';
+  let diff_data = votesDiffDistrict(years, vote_data, party, 'Land', 'Hele landet');
+  txt += listDiffTextNational(years, diff_data);
+
+  var {heading, location} = districtHighDiffTxt(geo_data);
+  diff_data = votesDiffDistrict(years, vote_data, party, 'opstillingskredse', location);
+  txt += heading;
+  txt += listDiffTextDistrict(years, diff_data, location);
+
+  var {heading, location} = districtLowDiffTxt(geo_data);
+  diff_data = votesDiffDistrict(years, vote_data, party, 'opstillingskredse', location);
+  txt += heading;
+  txt += listDiffTextDistrict(years, diff_data, location);
+
+  txt += '</div>';
+
+  updateBokehDivTxt(txt);
 }
 
 function onlyHighLowTxt(geo_data) {
   var txt = '';
   var {val} = geoDataLocationMinMax(geo_data, 'min');
   if (val > 0) {
-    txt += 'Parti har kun oplevet fremgang.<br>';
+    txt += '<span i18n-key="party-only-increase"></span>';
+    txt += '\n';
   }
   var {val} = geoDataLocationMinMax(geo_data, 'max');
   if (val < 0) {
-    txt += 'Parti har kun oplevet tilbagegang.<br>';
+    txt += '<span i18n-key="party-only-setback"></span>';
+    txt += '\n';
   }
   return txt;
 }
 
-function districtHighestDiffChg(years, vote_data, party, geo_data) {
+function listDiffTextNational(years, data) {
+  var txt = '';
+  txt += '<ul class="list">';
+  txt += `<li ${i18KeyValPartyNoData(years[0], data)}></li>`;
+  txt += `<li ${i18KeyValPartyNoData(years[1], data)}></li>`;
+  txt += `<li ${i18nKeyValue("change", valuei18nAttr(data.chg, {sign: 'exceptZero'}))}></li>`;
+  txt += '</ul>';
+
+  return txt;
+}
+
+function listDiffTextDistrict(years, data, location) {
+  var txt = '';
+  txt += '<ul class="list">';
+  txt += `<li ${i18nKeyValue("nomination_district", stri18nAttr(location))}'></li>`;
+  txt += `<li ${i18KeyValPartyNoData(years[0], data)}></li>`;
+  txt += `<li ${i18KeyValPartyNoData(years[1], data)}></li>`;
+  txt += `<li ${i18nKeyValue("change", valuei18nAttr(data.chg, {sign: 'exceptZero'}))}'></li>`;
+  txt += '</ul>';
+
+  return txt;
+}
+
+function i18KeyValPartyNoData(year, data) {
+  const {key, valObj} = keyValPartyNoData(year, data);
+  return i18nKeyValue(key, valObj);
+}
+
+function txtLineKeyValPartyNoData(year, data) {
+  const {key, valObj} = keyValPartyNoData(year, data);
+  return hoverInfoLineTxt(key, valObj);
+}
+
+function hoverInfoLineTxt(key, valObj) {
+  const txt = replaceTemplate(key, valObj);
+  return `${txt}\n`;
+}
+
+function keyValPartyNoData(year, data) {
+  let key;
+  let valObj;
+
+  if (data[year].votes == -999) {
+    key = 'new-party-no-data';
+    valObj = stri18nAttr(year);
+  } else {
+    key = 'el-year-votes';
+    valObj = strValPcti18nAttr(year, data[year].votes, data[year].votes_frac);
+  }
+  return {key, valObj}
+}
+
+function districtHighDiffTxt(geo_data) {
   const {location, val} = geoDataLocationMinMax(geo_data, 'max');
-  const diff_str_arr = votesDiffDistrict(years, vote_data, party, 'opstillingskredse', location);
-  const str_arr = [`Opstillingskreds: ${location}`];
-  str_arr.push(...diff_str_arr);
-
-  var txt = '';
+  var heading = '';
   if (val < 0) {
-    txt += 'Mindste tilbagegang';
+    heading += '<span i18n-key="smallest-setback"></span>';
   } else {
-    txt += 'Største fremgang';
+    heading += '<span i18n-key="largest-increase"></span>';
   }
-  txt += arrElem2Text(str_arr, 'bullet')
 
-  return txt;
+  return {heading, location};
 }
 
-function districtLowestDiffChg(years, vote_data, party, geo_data) {
+function districtLowDiffTxt(geo_data) {
   const {location, val} = geoDataLocationMinMax(geo_data, 'min');
-  const diff_str_arr = votesDiffDistrict(years, vote_data, party, 'opstillingskredse', location);
-  const str_arr = [`Opstillingskreds: ${location}`];
-  str_arr.push(...diff_str_arr);
-
-  var txt = '';
+  var heading = '';
   if (val < 0) {
-    txt += 'Største tilbagegang';
+    heading += '<span i18n-key="largest-setback"></span>';
   } else {
-    txt += 'Mindste fremgang';
+    heading += '<span i18n-key="smallest-increase"></span>';
   }
-  txt += arrElem2Text(str_arr, 'bullet')
 
-  return txt;
+  return {heading, location};
 }
 
 function geoDataLocationMinMax(geo_data, min_max) {
@@ -187,111 +291,17 @@ function geoDataLocationMinMax(geo_data, min_max) {
   return {location, val};
 }
 
-function mapSelectDistrictSrc(items, fake1_src, fake2_src, fake_coord) {
-  const f1_data = fake1_src.data;
-  const f2_data = fake2_src.data;
-  const max_items_row = 5;
-  if (items.length > max_items_row) {
-    f1_data['legend'] = items.slice(0, max_items_row);
-    f2_data['legend'] = items.slice(max_items_row);
-    f1_data['x'] = arrayFill(max_items_row, fake_coord[0]);
-    f2_data['x'] = arrayFill(f2_data['legend'].length, fake_coord[0]);
-    f1_data['y'] = arrayFill(max_items_row, fake_coord[1]);
-    f2_data['y'] = arrayFill(f2_data['legend'].length, fake_coord[1]);
-  } else {
-    f1_data['legend'] = items;
-    f1_data['x'] = arrayFill(items.length, fake_coord[0]);
-    f1_data['y'] = arrayFill(items.length, fake_coord[1]);
-    f2_data['legend'] = [];
-    f2_data['x'] = [];
-    f2_data['y'] = [];
-  }
-  fake1_src.change.emit();
-  fake2_src.change.emit();
-}
-
-function updateGlyphFillColor(plot, glyphName, transform) {
-  const r = plot.select(name = glyphName)[0];
-  r.glyph.fill_color = {field: 'legend', transform: transform};
-}
-
-function mapLegendRows(legend1, legend2, items) {
-  legend1.visible = true;
-    if (items.length > 5) {
-      legend1.margin = 0;
-      legend2.visible = true;
-      legend1.spacing = 5;
-      legend2.spacing = 5;
-    } else {
-      legend1.margin = 15;
-      legend2.visible = false;
-      legend1.spacing = 5;
-    }
-}
-
-function voteFrac2geoArr(geo_data, vote_data, party) {
-  var geo_val = [];
-  for (const district of geo_data['navn']) {
-    const idx = vote_data['navn'].indexOf(district);
-    geo_val.push(vote_data[party]['VoteFrac'][idx]);
-  }
-  return geo_val;
-}
-
-function voteFrac2geoArrDiff(geo_data, vote_data, party, years) {
-  const year0 = Number(years[0]);
-  const year1 = Number(years[1]);
-  const votes_y0 = vote_data[year0]['data']['opstillingskredse'];
-  const votes_y1 = vote_data[year1]['data']['opstillingskredse'];
-  const geo_votefrac_y0 = voteFrac2geoArr(geo_data, votes_y0, party);
-  var chg = [];
-  if (vote_data[year1]['parties']['parties'].includes(party)) {
-    const geo_votefrac_y1 = voteFrac2geoArr(geo_data, votes_y1, party);
-    for (i = 0; i < geo_votefrac_y0.length; i++) {
-      chg.push((geo_votefrac_y0[i] - geo_votefrac_y1[i])*100);
-    }
-  } else {
-    for (const element of geo_votefrac_y0) {
-      chg.push(element*100);
-    }
-  }
-  return chg;
-}
-
-function voteDens2geoArr(geo_data, vote_data, bins) {
-  var geo_val = [];
-  for (const district of geo_data['navn']) {
-    const idx = vote_data['navn'].indexOf(district);
-    const voters_density = vote_data['voters_density'][idx];
-    var i = 0;
-    var i_adj = 0;
-    if (bins[0] === 0) {
-      i = 1;
-      i_adj = 1;
-    }
-    var loop_bins_bool = true;
-    while (loop_bins_bool) {
-      if (voters_density < bins[i]) {
-        geo_val.push(i-i_adj);
-        loop_bins_bool = false;
-      } else {
-        i += 1;
-      }
-    }
-  }
-  return geo_val;
-}
-
 function voteDensTxt(year, vote_data, district_name) {
   const votes_district = vote_data[year]['data']['opstillingskredse'];
   const idx = votes_district['navn'].indexOf(district_name);
   const entitled_voters = votes_district['Stemmeberettigede'][idx];
   const votes_dens = votes_district['voters_density'][idx];
-  const str_arr = [];
-  str_arr.push(`Stemmeberettigede: ${formatAsIntl(entitled_voters)}`);
-  str_arr.push(`Vælgertæthed per km²: ${formatAsIntl(votes_dens, 0)}`);
 
-  return arrElem2Text(str_arr, 'list');
+  var txt = '';
+  txt += hoverInfoLineTxt('entitled_voters', valuei18nAttr(entitled_voters));
+  txt += hoverInfoLineTxt('voters_density_hover', valuei18nAttr(votes_dens, {digits: 0}));
+
+  return txt;
 }
 
 function votesDistrict(vote_data, party, district_name) {
@@ -315,80 +325,175 @@ function votesDistrictTxt(year, vote_data, party, district_type, district_name) 
   const votes_district = vote_data[year]['data'][district_type];
   const {votes, votes_frac, votes_total} = votesDistrict(votes_district, party, district_name);
 
-  return listPartyResults(votes, votes_frac, votes_total);
+  var txt = '';
+  txt += hoverInfoLineTxt('votes', valuePcti18nAttr(votes, votes_frac));
+  txt += hoverInfoLineTxt('valid_votes', valuei18nAttr(votes_total));
+  return txt;
 }
 
 function votesDistrictDiffTxt(years, vote_data, party, district_type, district) {
-  const str_arr = votesDiffDistrict(years, vote_data, party, district_type, district);
-  return arrElem2Text(str_arr, 'list');
+  const data = votesDiffDistrict(years, vote_data, party, district_type, district);
+
+  var txt = '';
+  txt += txtLineKeyValPartyNoData(years[0], data);
+  txt += txtLineKeyValPartyNoData(years[1], data);
+  txt += hoverInfoLineTxt("change", valuei18nAttr(data.chg, {sign: 'exceptZero'}));
+
+  return txt;
 }
 
 function votesDiffDistrict(years, vote_data, party, district_type, district_name) {
-  var str_arr = [];
+  var data = {};
   var frac = [];
   years.forEach((year) => {
-    var txt = '';
+    var votes = -999;
+    var votes_frac = -999;
     const yr_data = vote_data[year]['data'][district_type];
     if (Object.keys(yr_data).includes(party)) {
-      const {votes, votes_frac} = votesDistrict(yr_data, party, district_name);
-      txt = votesAndPct(votes, votes_frac);
+      var {votes, votes_frac} = votesDistrict(yr_data, party, district_name);
       frac.push(votes_frac);
     } else {
-      txt = 'nyt parti, ingen data' 
       frac.push(0);
     }
-    str_arr.push(`${year}: ${txt}`);
+    data[year] = {votes, votes_frac};
   });
-  const chg = formatAsIntl((frac[0]-frac[1])*100, 2, 'exceptZero');
-  str_arr.push(`Ændring (procentpoint): ${chg}`);
+  const chg = (frac[0]-frac[1])*100;
+  data['chg'] = chg;
 
-  return str_arr;
+  return data;
 }
 
-function mapTitle(txt) {
-  document.getElementById("map-title").innerHTML = txt[0];
-  document.getElementById("sub-title").innerHTML = txt[1];
+function hoverInfoDistrictTxt(idx, geo_data, district) {
+  var txt = '';
+  txt += hoverInfoLineTxt('region', stri18nAttr(geo_data['regionsnavn'][idx]));
+  txt += hoverInfoLineTxt('constituency', stri18nAttr(geo_data['storkredsnavn'][idx]));
+  txt += hoverInfoLineTxt('municipality', stri18nAttr(geo_data['kredskommunenavn'][idx]));
+  txt += hoverInfoLineTxt('nomination_district', stri18nAttr(district));
+  
+  return txt;
+}
+
+function hoverInfoAddTxt(
+  district, heatmap_items, vote_data,
+  map_select, district_type
+  ) {
+  var txt = '';
+  const heatmap_type = heatmap_items['type'];
+  const map_select_val = map_select.value;
+
+  if (heatmap_type == 'value') {
+    const year = heatmap_items['year'];
+    txt += votesDistrictTxt(year, vote_data, map_select_val, district_type, district);
+  }
+
+  if (heatmap_type == 'diff') {
+    const years = heatmap_items['year'];
+    txt += votesDistrictDiffTxt(years, vote_data, map_select_val, district_type, district);
+  }
+
+  if (heatmap_type == 'voters_density') {
+    var options_idx = map_select.options.indexOf(map_select.value);
+    if (options_idx === -1)
+      options_idx = 0;
+    
+    const year = map_select.tags[options_idx]['i18n-val']['str']['str'];
+    txt += voteDensTxt(year, vote_data, district);
+  }
+
+  return txt;
+}
+
+function mapTitle(data_type, heatmap_type_wdg, map_select_wdg) {
+  const main_elm = document.getElementById("map-title");
+  const sub_elm = document.getElementById("sub-title");
+
+  const heatmap_type_wdg_tags = heatmap_type_wdg.tags;
+  const heatmap_active = heatmap_type_wdg_tags[heatmap_type_wdg.active];
+  const map_select_wdg_tags = map_select_wdg.tags;
+  var options_idx;
+
+  if ((data_type == 'district') || (data_type == 'voters_density')) {
+    options_idx = map_select_wdg.options.indexOf(map_select_wdg.value);
+  } else {
+    for (var i = 0; i < map_select_wdg.options.length; i++) {
+      if (map_select_wdg.options[i][0] != map_select_wdg.value)
+        continue;
+      
+      options_idx = i;
+      break;
+    }
+  }
+
+  if (data_type == 'district') {
+    const i18n_obj = map_select_wdg_tags[options_idx];
+    main_elm.setAttribute('i18n-key', i18n_obj['i18n-key']);
+    main_elm.removeAttribute('i18n-val');
+
+    sub_elm.setAttribute('i18n-key', 'subtille-districts');
+  }
+
+  if (data_type == 'value') {
+    main_elm.setAttribute('i18n-key', 'maintitle-election');
+    const str2 = heatmap_active['i18n-val']['str']['str'];
+    const party_name = map_select_wdg.options[options_idx][1];
+    const val = JSON.stringify(strStri18nAttr(party_name, str2));
+    main_elm.setAttribute('i18n-val', val);
+
+    sub_elm.setAttribute('i18n-key', 'subtitle-election');
+  }
+
+  if (data_type == 'diff') {
+    main_elm.setAttribute('i18n-key', 'maintitle-election-diff');
+    const str2 = heatmap_active['i18n-val']['str']['str'];
+    const party_name = map_select_wdg.options[options_idx][1];
+    const val = JSON.stringify(strStri18nAttr(party_name, str2));
+    main_elm.setAttribute('i18n-val', val);
+
+    sub_elm.setAttribute('i18n-key', 'subtitle-election-diff');
+  }
+
+  if (data_type == 'voters_density') {
+    const i18n_obj = map_select_wdg_tags[options_idx];
+    main_elm.setAttribute('i18n-key', i18n_obj['i18n-key']);
+    main_elm.setAttribute('i18n-val', JSON.stringify(i18n_obj['i18n-val']));
+
+    sub_elm.setAttribute('i18n-key', 'subtitle-voters-density');
+  }
+  updateElementTxt(main_elm);
+  updateElementTxt(sub_elm);
 }
 
 function localeDataSources() {
+  formatElectionResultSrc();
+
+  const heatmap_wdg = window.Bokeh.documents[0].get_model_by_name('heatmap_type');
+  if (heatmap_wdg.active == 1)
+    formatVotersDensityLegendSrc();
+}
+
+function formatElectionResultSrc() {
   const cds = window.Bokeh.documents[0].get_model_by_name('src_results');
   const data = cds.data;
   const cols = [];
-  for (const [key, value] of Object.entries(data)) {
+  for (const key of Object.keys(data)) {
     if (key.endsWith('_label')) cols.push(key);
   }
   cols.forEach(elem => {
     const arr = [];
+    const val_col = elem.split('_')[0];
     for (var i = 0; i < data[elem].length; i++) {
       const label = data[elem][i];
-      const suffix = '';
-      const val = parseFloat(label);
-      if (label.endsWith('%')) {
-        arr.push(formatAsPercent(val/100));
+      const val = data[val_col][i];
+      if (val_col.length == 4) {
+        arr.push(formatAsPercent(val, 1));
       } else {
-        arr.push(formatAsIntl(val, 1, 'exceptZero'));
+        const value = {num: val, digits: 1, sign: 'exceptZero'};
+        arr.push(formatAsIntl(value));
       }
     }
     data[elem] = arr;
   });
   cds.change.emit();
-}
-
-function colorbarFormat(colorbar, format) {
-  // const diff_high_low = colorbar.color_mapper.high - colorbar.color_mapper.low;
-  // var format = '0 %';
-  // if (diff_high_low <= 0.05) format = '0.0 %';
-  // if (diff_high_low <= 0.01) format = '0.00 %';
-  if (format == 'num') {
-    colorbar.formatter.code = 'return formatAsIntl(tick);'
-  }
-  if (format == 'pct') {
-    colorbar.formatter.code = 'return formatAsPercent(tick);'
-  }
-  const cbscript = window.Bokeh.documents[0].get_model_by_name('color_bar_cb_code');
-  console.log(cbscript);
-  cbscript.execute();
-  //colorbar.formatter.format = format;
 }
 
 function colorbarTicker(colorbar, scale = 1) {
@@ -456,22 +561,151 @@ function partyVoteShareMapper(vote_data, party, mapper, palette) {
   }
 
   const {low, high, pal_size} = mapperHighLow(min_val, max_val);
-
   mapper.low = low;
   mapper.high = high;
   mapper.palette = palette[pal_size];
 }
 
-// function updateMapper(vote_data, ) {
-//   partyVoteShareMapper(vote_data, map_select.value, color_mapper['votefrac']['mapper'], color_mapper['votefrac']['whole_palette']);
-//     color_bar.color_mapper = color_mapper['votefrac']['mapper'];
-//     colorbarFormat(color_bar);
-//     color_bar.ticker.ticks = colorbarTicker(color_bar, 100);
-
-function updateColorbar(colorbar, mapper, format, tick_scale) {
+function updateColorbar(colorbar, mapper, tick_scale) {
   colorbar.color_mapper = mapper;
-  //colorbarFormat(format);
   colorbar.ticker.ticks = colorbarTicker(colorbar, tick_scale);
+}
+
+function updateFakeSrcLegends(factor_cmap, items, plot, coord, heatmap_type) {
+  const lgnd1 = plot.select(name = 'legend1')[0];
+  const lgnd2 = plot.select(name = 'legend2')[0];
+  const src1 = window.Bokeh.documents[0].get_model_by_name('map_fake1_src');
+  const src2 = window.Bokeh.documents[0].get_model_by_name('map_fake2_src');
+
+  factor_cmap.factors = items;
+  updateGlyphFillColor(plot, 'r_fake1', factor_cmap);
+  updateGlyphFillColor(plot, 'r_fake2', factor_cmap);
+  mapSelectDistrictSrc(items, src1, src1, coord, heatmap_type);
+  mapLegendRows(lgnd1, lgnd2, items);
+}
+
+function updateGlyphFillColor(plot, glyphName, transform) {
+  const r = plot.select(name = glyphName)[0];
+  r.glyph.fill_color = {field: 'value', transform: transform};
+}
+
+function mapSelectDistrictSrc(items, fake1_src, fake2_src, fake_coord, heatmap_type) {
+  const f1_data = fake1_src.data;
+  const f2_data = fake2_src.data;
+  const max_items_row = 5;
+  const value = items;
+  var legend_labels = items; 
+  
+  if (heatmap_type == 'voters_density') {
+    legend_labels = formatVotersDensityItems(items);
+  }
+
+  f2_data['legend'] = [];
+  f2_data['value'] = [];
+  f2_data['x'] = [];
+  f2_data['y'] = [];
+
+  f1_data['legend'] = legend_labels.slice(0, Math.min(items.length, max_items_row));
+  f1_data['value'] = value.slice(0, Math.min(items.length, max_items_row));
+  f1_data['x'] = arrayFill(f1_data['legend'].length, fake_coord[0]);
+  f1_data['y'] = arrayFill(f1_data['legend'].length, fake_coord[1]);
+
+  if (items.length > max_items_row) {
+    f2_data['legend'] = legend_labels.slice(max_items_row);
+    f2_data['value'] = value.slice(max_items_row);
+    f2_data['x'] = arrayFill(f2_data['legend'].length, fake_coord[0]);
+    f2_data['y'] = arrayFill(f2_data['legend'].length, fake_coord[1]);
+  }
+  fake1_src.change.emit();
+  fake2_src.change.emit();
+}
+
+function formatVotersDensityItems(items) {
+  const labels = [];
+  for (var i = 0; i < items.length; i++) {
+    const label_split = items[i].split('-');
+    const low = {num: parseInt(label_split[0]), digits: 0};
+    const high = {num: parseInt(label_split[1]), digits: 0};
+
+    labels.push(`${formatAsIntl(low)}-${formatAsIntl(high)}`);
+  }
+  return labels;
+}
+
+function formatVotersDensityLegendSrc() {
+  const src_names = ['map_fake1_src', 'map_fake2_src'];
+  src_names.forEach((src_name) => {
+    const src = window.Bokeh.documents[0].get_model_by_name(src_name);
+    src.data['legend'] = formatVotersDensityItems(src.data['value']);
+    src.change.emit();
+  });
+}
+
+function mapLegendRows(legend1, legend2, items) {
+  legend1.visible = true;
+    if (items.length > 5) {
+      legend1.margin = 0;
+      legend2.visible = true;
+      legend1.spacing = 5;
+      legend2.spacing = 5;
+    } else {
+      legend1.margin = 15;
+      legend2.visible = false;
+      legend1.spacing = 5;
+    }
+}
+
+function voteFrac2geoArrDiff(geo_data, vote_data, party, years) {
+  const year0 = Number(years[0]);
+  const year1 = Number(years[1]);
+  const votes_y0 = vote_data[year0]['data']['opstillingskredse'];
+  const votes_y1 = vote_data[year1]['data']['opstillingskredse'];
+  const geo_votefrac_y0 = voteFrac2geoArr(geo_data, votes_y0, party);
+  var chg = [];
+  if (vote_data[year1]['parties']['parties'].includes(party)) {
+    const geo_votefrac_y1 = voteFrac2geoArr(geo_data, votes_y1, party);
+    for (i = 0; i < geo_votefrac_y0.length; i++) {
+      chg.push((geo_votefrac_y0[i] - geo_votefrac_y1[i])*100);
+    }
+  } else {
+    for (const element of geo_votefrac_y0) {
+      chg.push(element*100);
+    }
+  }
+  return chg;
+}
+
+function voteDens2geoArr(geo_data, vote_data, bins) {
+  var geo_val = [];
+  for (const district of geo_data['navn']) {
+    const idx = vote_data['navn'].indexOf(district);
+    const voters_density = vote_data['voters_density'][idx];
+    var i = 0;
+    var i_adj = 0;
+    if (bins[0] === 0) {
+      i = 1;
+      i_adj = 1;
+    }
+    var loop_bins_bool = true;
+    while (loop_bins_bool) {
+      if (voters_density < bins[i]) {
+        geo_val.push(i-i_adj);
+        loop_bins_bool = false;
+      } else {
+        i += 1;
+      }
+    }
+  }
+  return geo_val;
+}
+
+function voteFrac2geoArr(geo_data, vote_data, party) {
+  var geo_val = [];
+  for (const district of geo_data['navn']) {
+    const idx = vote_data['navn'].indexOf(district);
+    geo_val.push(vote_data[party]['VoteFrac'][idx]);
+  }
+  return geo_val;
 }
 
 function runBkScript() {

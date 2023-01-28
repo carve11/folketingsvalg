@@ -8,25 +8,15 @@ map_select_js_cb_code = '''
   const geo_data = geo_src.data;
   const patch_glyph = plot.select(name = 'patch_glyph')[0];
   const color_bar = plot.select(name = 'color_bar')[0];
-  const lgnd1 = plot.select(name = 'legend1')[0];
-  const lgnd2 = plot.select(name = 'legend2')[0];
   const factor_cmap = color_mapper['factorcmap'];
-  var title_txt = [];
-  var main_title = '';
-  var sub_title = '';
-  
+
   if (heatmap_type == 'diff') {
     const years = heatmap_type_items[heatmap_type_wdg.active]['year'];
     const party_idx = vote_data[years[0]]['parties']['parties'].indexOf(map_select.value);
     const short_name = vote_data[years[0]]['parties']['short_name'][party_idx];
     geo_data['value'] = voteFrac2geoArrDiff(geo_data, vote_data, map_select.value, years);
-    main_title += short_name + ' - ' + heatmap_type_wdg.labels[heatmap_type_wdg.active];
-    sub_title += 'Ændring i procentpoint per opstillingskreds';
-    party_select_div.text = mapSelectPartyDiffTxt(years, vote_data, map_select.value, geo_data);
-    //color_bar.color_mapper = color_mapper['diff_map'];
-    //color_bar.formatter.format = '0';
-    //color_bar.ticker.ticks = colorbarTicker(color_bar, 1);
-    updateColorbar(color_bar, color_mapper['diff_map'], 'num', 1);
+    mapSelectPartyDiffTxt(years, vote_data, map_select.value, geo_data);
+    updateColorbar(color_bar, color_mapper['diff_map'], 1);
     patch_glyph.glyph.fill_color = {field: 'value', transform: color_mapper['diff_map']};
     geo_src.change.emit();
   }
@@ -36,52 +26,39 @@ map_select_js_cb_code = '''
     const short_name = vote_data[year]['parties']['short_name'][party_idx];
     const votes_district = vote_data[year]['data']['opstillingskredse'];
     geo_data['value'] = voteFrac2geoArr(geo_data, votes_district, map_select.value);
-    main_title += short_name + ' - ' + heatmap_type_wdg.labels[heatmap_type_wdg.active];
-    sub_title += 'Stemmeandel (%) per opstillingskreds';
-    party_select_div.text = mapSelectPartyTxt(geo_data, vote_data[year]['data'], map_select.value);
+    mapSelectPartyTxt(geo_data, vote_data[year]['data'], map_select.value);
     partyVoteShareMapper(vote_data, map_select.value, color_mapper['votefrac']['mapper'], color_mapper['votefrac']['whole_palette']);
-    //color_bar.color_mapper = color_mapper['votefrac']['mapper'];
-    //colorbarFormat(color_bar);
-    //color_bar.ticker.ticks = colorbarTicker(color_bar, 100);
-    updateColorbar(color_bar, color_mapper['votefrac']['mapper'], 'pct', 100);
+    updateColorbar(color_bar, color_mapper['votefrac']['mapper'], 100);
     patch_glyph.glyph.fill_color = {field: 'value', transform: color_mapper['votefrac']['mapper']};
     geo_src.change.emit();
   }
   if (heatmap_type == 'district') {
-    main_title += map_select.value + ' - opdelt i opstillingskredse';
     party_select_div.text = '';
-    const items = district_items[map_select.value];
-    const field = district_mapping[map_select.value];
+    const options_idx = map_select.options.indexOf(map_select.value);
+    const val = Object.keys(district_mapping)[options_idx];
+    const items = district_items[val];
+    const field = district_mapping[val];
     const transform = color_mapper['district'];
     transform.factors = items;
     patch_glyph.glyph.fill_color = {field: field, transform: transform};
     factor_cmap.palette = color_mapper['district'].palette;
-    factor_cmap.factors = items;
-    updateGlyphFillColor(plot, 'r_fake1', factor_cmap);
-    updateGlyphFillColor(plot, 'r_fake2', factor_cmap);
-    mapSelectDistrictSrc(items, fake1_src, fake2_src, fake_coord);
-    mapLegendRows(lgnd1, lgnd2, items);
+    updateFakeSrcLegends(factor_cmap, items, plot, fake_coord, heatmap_type);
   }
   if (heatmap_type == 'voters_density') {
-    main_title += map_select.value + ' - opdelt i opstillingskredse';
-    sub_title += 'Antal stemmeberettigede per km²';
     party_select_div.text = '';
-    const items = heatmap_type_items[heatmap_type_wdg.active]['lgnd_labels'];
+    var items = heatmap_type_items[heatmap_type_wdg.active]['lgnd_labels'];
     const transform = color_mapper['voters_density'];
     patch_glyph.glyph.fill_color = {field: 'value', transform: transform};
     factor_cmap.palette = color_mapper['voters_density'].palette;
-    factor_cmap.factors = items;
-    updateGlyphFillColor(plot, 'r_fake1', factor_cmap);
-    updateGlyphFillColor(plot, 'r_fake2', factor_cmap);
-    mapSelectDistrictSrc(items, fake1_src, fake2_src, fake_coord);
-    mapLegendRows(lgnd1, lgnd2, items);
-    const year = parseInt(map_select.value.split(' ')[1]);
+    updateFakeSrcLegends(factor_cmap, items, plot, fake_coord, heatmap_type);
+    const options_idx = map_select.options.indexOf(map_select.value);
+    const year = map_select.tags[options_idx]['i18n-val']['str']['str'];
     const votes_district = vote_data[year]['data']['opstillingskredse'];
     const bins = heatmap_type_items[heatmap_type_wdg.active]['bins'];
     geo_data['value'] = voteDens2geoArr(geo_data, votes_district, bins);
     geo_src.change.emit();
   }
-  mapTitle([main_title, sub_title]);
+  mapTitle(heatmap_type, heatmap_type_wdg, map_select);
 '''
 
 map_info_js_cb_code = '''
@@ -103,25 +80,12 @@ map_info_js_cb_code = '''
     }
     geo_src.inspected.indices = idx_common;
     geo_src.change.emit();
-    r.x = plot.inner_width - 215;
+    r.x = plot.inner_width - 225;
     r.y = plot.inner_height - 5;
-    txt += 'Region: ' + geo_data['regionsnavn'][idx] + '\\n';
-    txt += 'Storkreds: ' + geo_data['storkredsnavn'][idx] + '\\n';
-    txt += 'Kommune: ' + geo_data['kredskommunenavn'][idx] + '\\n';
-    txt += 'Opstillingskreds: ' + district + '\\n';
-    const heatmap_type = heatmap_type_items[heatmap_type_wdg.active]['type'];
-    if (heatmap_type == 'value') {
-      const year = heatmap_type_items[heatmap_type_wdg.active]['year'];
-      txt += votesDistrictTxt(year, vote_data, map_select.value, district_type, district);
-    }
-    if (heatmap_type == 'diff') {
-      const years = heatmap_type_items[heatmap_type_wdg.active]['year'];
-      txt += votesDistrictDiffTxt(years, vote_data, map_select.value, district_type, district);
-    }
-    if (heatmap_type == 'voters_density') {
-      const year = parseInt(map_select.value.split(' ')[1]);
-      txt += voteDensTxt(year, vote_data, district);
-    }
+    const heatmap_items = heatmap_type_items[heatmap_type_wdg.active];
+    txt += hoverInfoDistrictTxt(idx, geo_data, district);
+    txt += hoverInfoAddTxt(district, heatmap_items, vote_data, map_select, district_type)
+
     r.visible = true;
   } else {
     r.visible = false;
@@ -147,6 +111,11 @@ heatmap_type_js_cb_code = '''
     lgnd2.visible = false;
   }
   map_select.options = heatmap_type_items[this.active]['options'];
+  map_select.tags = heatmap_type_items[this.active]['tags'];
+
+  if (map_select.tags.length > 0) {
+    translateBokehWidgetItems(map_select);
+  }
   var options = map_select.options;
   if (Array.isArray(options[0])) {
     options = [];
@@ -160,4 +129,15 @@ heatmap_type_js_cb_code = '''
   } else {
     map_select.value = options[0];
   }
+'''
+
+hover_histogram_js_cb_code = '''
+  const count_txt = replaceTemplate("count");
+  const interval_txt = replaceTemplate("interval");
+  const tooltip = `
+    <div>
+     <span>${count_txt}</span>: @count<br>
+     <span>${interval_txt}</span>: @bin_txt
+    </div>`
+    this.tooltips = tooltip;
 '''
