@@ -25,7 +25,7 @@ class Folketingsvalg:
         self.vote_url = config.ELECTION_URL
         self.gdf, self.district_items = self.geo_data()
         self.vote = self.election_results()
-        self.map_select_options()
+        self.wdg_attributes()
         
         self.srcs = self.data_sources()
 
@@ -46,7 +46,7 @@ class Folketingsvalg:
 
         self.voters_density_grid = PartyDensityGridPlot(self.vote, self.years)
 
-        self.wdgs = widgets(self.heatmap_type_items)
+        self.wdgs = widgets(self.heatmap_type_items, self.wdg_tags)
         self.callbacks()
 
         index_template = read_index_template(config.INDEX_TEMPLATE)
@@ -88,67 +88,128 @@ class Folketingsvalg:
 
         return results
 
-    def map_select_options(self):
+    def wdg_attributes(self):
         '''
-        Options that define what data the map is displaying
+        Setup labels and options for map categories widget 
+        and associated labels.
+        Define translation tags for locale switcher.
+        Order in list defines displayed order.
         '''
-        districts = list(self.district_items.keys())
-        heatmap_type = {}
-        heatmap_type[0] = {
-            'label': 'Administrative inddelinger',
-            'type': 'district',
-            'options': districts
-            }
-        
-        bins = [0, 50, 100, 400, 1000, 100000]
         self.years = sorted(self.vote.keys(), reverse = True)
-        voters_density = [f'Vælgertæthed {i}' for i in self.years]
-        heatmap_type[1] = {
-            'label': 'Vælgertæthed',
-            'type': 'voters_density',
-            'options': voters_density,
-            'bins': bins,
-            'lgnd_labels': labels_from_bins(bins)
+        attr_list = []
+        tags_list = {'o': [], 'l': []}
+        for func in [
+            self.district_choice, self.voters_density_choice, 
+            self.election_choice, self.election_diff_choice
+            ]:
+            items = func()
+            tags_list['o'].extend(items['o'])
+            tags_list['l'].extend(items['l'])
+            attr_list.extend(items['a'])
+        
+        self.heatmap_type_items = {i: attr for i, attr in enumerate(attr_list)}
+        self.wdg_tags = tags_list
+
+
+    def district_choice(self):
+        options_tags = [
+            {'i18n-key': 'leveling_regions'},
+            {'i18n-key': 'regions'},
+            {'i18n-key': 'constituencies'},
+        ]
+        label_tags = [{'i18n-key': 'admin_devision'}]
+
+        attr = {
+            'label': label_tags[0]['i18n-key'],
+            'type': 'district',
+            'options': [i['i18n-key'] for i in options_tags],
+            'tags': options_tags
             }
 
-        curr_item = len(heatmap_type.keys())
+        return {'o': options_tags, 'l': label_tags, 'a': [attr]}
+
+    def voters_density_choice(self):
+        bins = [0, 50, 100, 400, 1000, 100000]
+        
+        options_tags = []
+        for y in self.years:
+            item = {
+                'i18n-key': 'voters_density',
+                'i18n-val': {'str': {'str': f'{y}'}}
+            }
+            options_tags.append(item)
+            
+        label_tags = [{'i18n-key': 'voters_density_label'}]
+
+        attr = {
+            'label': label_tags[0]['i18n-key'],
+            'type': 'voters_density',
+            'options': [i['i18n-key'] for i in options_tags],
+            'bins': bins,
+            'lgnd_labels': labels_from_bins(bins),
+            'tags': options_tags
+            }
+
+        return {'o': options_tags, 'l': label_tags, 'a': [attr]}
+
+    def election_choice(self):
+        options_tags = []
+        label_tags = []
+        attr = []
+
         for i, y in enumerate(self.years):
             date = self.vote[y]['data']['Land']['ValgDato']
             options = tuple(zip(
                 self.vote[y]['parties']['parties'],
                 self.vote[y]['parties']['short_name']
                 ))
-            heatmap_type[i+curr_item] = {
-                'label': 'Folketingsvalg ' + date,
+
+            label_tags.append({
+                'i18n-key': 'election_result',
+                'i18n-val': {'str': {'str': date}}
+            })
+                
+            attr.append({
+                'label': label_tags[-1]['i18n-key'],
                 'type': 'value',
                 'year': y,
-                'options': options
-                }
+                'options': options,
+                'tags': options_tags
+                })
 
-        curr_item = len(heatmap_type.keys())-1
+        return {'o': options_tags, 'l': label_tags, 'a': attr}
+
+    def election_diff_choice(self):
+        options_tags = []
+
         options = tuple(zip(
             self.vote[self.years[0]]['parties']['parties'],
             self.vote[self.years[0]]['parties']['short_name']
             ))
-        heatmap_type[curr_item+1] = {
-            'label': f'Ændring {self.years[0]}-{self.years[1]}',
+
+        label_tags = [{
+            'i18n-key': 'election_diff',
+            'i18n-val': {'str': {'str': f'{self.years[1]}-{self.years[0]}'}}
+        }]
+
+        attr = {
+            'label': label_tags[0]['i18n-key'],
             'type': 'diff',
             'year': (self.years[0], self.years[1]),
-            'options': options
+            'options': options,
+            'tags': options_tags
             }
-        
-        self.heatmap_type_items = heatmap_type
+
+        return {'o': options_tags, 'l': label_tags, 'a': [attr]}
 
     def callbacks(self):
-        p = self.p_map.plot
+        p_map = self.p_map.plot
 
         self.wdgs['map_select'].js_on_change(
             'value', 
             CustomJS(
                 args = {
                     'geo_src': self.srcs['geo'],
-                    'fake1_src': self.srcs['map_fake1'],
-                    'fake2_src': self.srcs['map_fake2'],
                     'vote_data': self.vote,
                     'heatmap_type_wdg': self.wdgs['heatmap_type'],
                     'fake_coord': self.fake_coord,
@@ -156,7 +217,7 @@ class Folketingsvalg:
                     'district_items': self.district_items,
                     'district_mapping': self.district_mapping,
                     'heatmap_type_items': self.heatmap_type_items,
-                    'plot': p,
+                    'plot': p_map,
                     'color_mapper': self.p_map.mapper,
                     'map_select': self.wdgs['map_select']
                 },
@@ -168,7 +229,7 @@ class Folketingsvalg:
         self.wdgs['heatmap_type'].js_on_click(
              CustomJS(
                 args = {
-                'plot': p,
+                'plot': p_map,
                 'map_select': self.wdgs['map_select'],
                 'heatmap_type_items': self.heatmap_type_items,
                 },
@@ -176,18 +237,25 @@ class Folketingsvalg:
                 )
             )
 
-        hover_cb = CustomJS(
+        hover_map_cb = CustomJS(
             args = {
                 'geo_src': self.srcs['geo'],
                 'vote_data': self.vote,
                 'heatmap_type_wdg': self.wdgs['heatmap_type'],
                 'heatmap_type_items': self.heatmap_type_items,
                 'map_select': self.wdgs['map_select'],
-                'plot': p,
+                'plot': p_map,
                 },
             code = callback_js_code.map_info_js_cb_code
             )
-        p.select(name = 'hover')[0].callback = hover_cb
+        p_map.select(name = 'hover')[0].callback = hover_map_cb
+
+        hover_histogram_cb = CustomJS(
+            code = callback_js_code.hover_histogram_js_cb_code
+            )
+        p_histogram = self.p_histogram.plot
+        hover_histogram = p_histogram.select(name = 'hover_histogram')[0]
+        hover_histogram.callback = hover_histogram_cb
 
     def data_sources(self):
         srcs = create_sources()
