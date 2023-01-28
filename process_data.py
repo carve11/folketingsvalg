@@ -212,7 +212,7 @@ def region_districts_from_geodata(geo_df, mapping):
 
 def labels_from_bins(bins):
     labels = [f'{bins[i]}-{bins[i+1] - 1}' for i in range(len(bins)-1)]
-    labels[-1] = f'{bins[-2]} og større'
+    labels[-1] = f'{bins[-2]}-20000'
 
     return labels
 
